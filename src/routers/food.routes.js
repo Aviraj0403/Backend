@@ -1,9 +1,24 @@
 import express from 'express';
-import { addFoodItem } from '../controllers/food.controller.js';  // Adjust path as necessary
+import { addFoodItem,
+  getAllFoods,
+  removeFood ,
+  getFoodById,
+  updateFoodById
+ } from '../controllers/food.controller.js';  // Adjust path as necessary
 
 const router = express.Router();
 
 // Route to add a new food item
 router.post('/add', addFoodItem);
+// Get all food items
+router.get('/list-food', getAllFoods);
+
+// Remove a food item
+router.post('/remove', removeFood);
+
+// Get a single food item by ID
+router.get('/:id', getFoodById);
+// Update a food item by ID
+router.put('/:id', updateFoodById);
 
 export default router;
