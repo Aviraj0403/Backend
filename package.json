@@ -16,7 +16,7 @@
   },
   "name": "backend",
   "version": "1.0.0",
-  "main": "src/server.js",
+  "main": "server.js",
   "type": "module",
   "scripts": {
     "start": "nodemon server.js",
