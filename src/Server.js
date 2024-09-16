@@ -1,10 +1,11 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+dotenv.config();
 import connectDB from './config/databaseConfig.js';
 import app from './App.js'; // Import the Express app
 
 // Load environment variables from .env file
-dotenv.config();
+
 
 const port = process.env.PORT || 4000; // Default to 4000 if PORT is not defined in .env
 console.log('Cloudinary Config:', {
