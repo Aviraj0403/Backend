@@ -35,20 +35,20 @@ app.use('/api/upload', uploadRoutes);
 
 
 // Error handling middleware
-app.use((err, req, res, next) => {
-  if (err instanceof ApiError) {
-    return res.status(err.statusCode).json({
-      success: err.success,
-      message: err.message,
-      errors: err.errors,
-      stack: err.stack,
-    });
-  }
-  res.status(500).json({
-    success: false,
-    message: 'Internal Server Error',
-  });
-});
+// app.use((err, req, res, next) => {
+//   if (err instanceof ApiError) {
+//     return res.status(err.statusCode).json({
+//       success: err.success,
+//       message: err.message,
+//       errors: err.errors,
+//       stack: err.stack,
+//     });
+//   }
+//   res.status(500).json({
+//     success: false,
+//     message: 'Internal Server Error',
+//   });
+// });
 
 app.get('*', (req, res) => {
   res.status(404).send('Server Check');
