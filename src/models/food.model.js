@@ -30,6 +30,8 @@ const foodSchema = new mongoose.Schema(
         "Pure Veg",
         "Pasta",
         "Noodles",
+        "Veg","Non-Veg",
+        "Dinner"
       ], // Restrict to predefined categories
     },
     cookTime: {
@@ -42,6 +44,10 @@ const foodSchema = new mongoose.Schema(
       enum: ["Veg", "Non-Veg"], // Only allow Veg or Non-Veg
     },
     isFeatured: {
+      type: Boolean,
+      default: false,
+    },
+    isRecommended: { // New field to indicate if the food item is recommended
       type: Boolean,
       default: false,
     },

@@ -3,7 +3,8 @@ import { addFoodItem,
   getAllFoods,
   removeFood ,
   getFoodById,
-  updateFoodById
+  updateFoodById,
+  getFoodsByCategory
  } from '../controllers/food.controller.js';  // Adjust path as necessary
 
 const router = express.Router();
@@ -20,5 +21,8 @@ router.post('/remove', removeFood);
 router.get('/:id', getFoodById);
 // Update a food item by ID
 router.put('/:id', updateFoodById);
+
+router.get('/category', getFoodsByCategory);
+router.get('/category/:category?/:itemType?', getFoodsByCategory);
 
 export default router;

@@ -10,7 +10,8 @@ import { Server } from 'socket.io';  // Import Socket.IO
 import { ApiError } from './utils/ApiError.js';
 
 import foodRoutes from './routers/food.routes.js'; 
-import uploadRoutes from './routers/upload.routes.js';  
+import uploadRoutes from './routers/upload.routes.js';
+import authRoutes from './routers/auth.routes.js'; 
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use('/api/auth', authRoutes); 
 app.use('/api/food', foodRoutes);
 app.use('/api/upload', uploadRoutes);
 

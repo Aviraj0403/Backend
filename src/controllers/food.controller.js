@@ -1,5 +1,5 @@
 import Food from '../models/food.model.js';
-import { ApiError } from '../utils/ApiError.js'; 
+import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js'; // Adjust path as necessary
 
 // Controller to add a new food item
@@ -13,6 +13,7 @@ export const addFoodItem = async (req, res, next) => {
       cookTime,
       itemType,
       isFeatured,
+      isRecommended, // New field for recommendation
       status,
       imageUrl,
     } = req.body;
@@ -25,6 +26,7 @@ export const addFoodItem = async (req, res, next) => {
       cookTime,
       itemType,
       isFeatured,
+      isRecommended, // Include in the new food object
       status,
       imageUrl,
     });
@@ -35,7 +37,8 @@ export const addFoodItem = async (req, res, next) => {
     next(new ApiError(500, 'Error adding food item', [error.message]));
   }
 };
- // Get all food items
+
+// Get all food items
 export const getAllFoods = async (req, res) => {
   try {
     const foods = await Food.find(); // Fetch all food items
@@ -51,7 +54,6 @@ export const getAllFoods = async (req, res) => {
     });
   }
 };
-
 
 // Get a single food item by ID
 export const getFoodById = async (req, res) => {
@@ -76,12 +78,18 @@ export const getFoodById = async (req, res) => {
     });
   }
 };
+
+// Update food item by ID
 export const updateFoodById = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, category, price, description, status } = req.body;
+    const { name, category, price, description, status, itemType, isFeatured, isRecommended } = req.body;
 
-    const food = await Food.findByIdAndUpdate(id, { name, category, price, description, status }, { new: true });
+    const food = await Food.findByIdAndUpdate(
+      id,
+      { name, category, price, description, status, itemType, isFeatured, isRecommended },
+      { new: true }
+    );
 
     if (food) {
       res.status(200).json({
@@ -102,6 +110,8 @@ export const updateFoodById = async (req, res) => {
     });
   }
 };
+
+// Remove food item
 export const removeFood = async (req, res) => {
   try {
     const { id } = req.body;
@@ -122,6 +132,42 @@ export const removeFood = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error removing item',
+    });
+  }
+};
+
+// Get food items by category
+export const getFoodsByCategory = async (req, res) => {
+  try {
+    const { category, itemType } = req.params; // Extract category and itemType from route parameters
+
+    const query = {};
+    if (category && category !== 'All') {
+      query.category = category; // Filter by category if it's not 'All'
+    }
+    if (itemType && itemType !== 'All') {
+      query.itemType = itemType; // Filter by item type if it's not 'All'
+    }
+
+    // Find food items based on the constructed query
+    const foods = await Food.find(query);
+
+    if (foods.length > 0) {
+      res.status(200).json({
+        success: true,
+        data: foods,
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: 'No food items found for the selected filters',
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching food items:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching data',
     });
   }
 };
