@@ -8,10 +8,12 @@ import dotenv from 'dotenv';
 import http from 'http';  // Import the HTTP module
 import { Server } from 'socket.io';  // Import Socket.IO
 import { ApiError } from './utils/ApiError.js';
-
+import authRoutes from './routers/auth.routes.js';
 import foodRoutes from './routers/food.routes.js'; 
 import uploadRoutes from './routers/upload.routes.js';
-import authRoutes from './routers/auth.routes.js'; 
+// import managerRoutes from './routers/manager.routes.js';
+import masterRoutes from './routers/master.routes.js';
+import { verifyJWT } from './middleware/auth.middleware.js';
 
 dotenv.config();
 
@@ -22,22 +24,28 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // Adjust for production security
+    origin: process.env.CORS_ORIGIN || "*", // Use environment variable for CORS
   }
 });
 
+// Middleware
+app.use(cors({
+  credentials: true 
+}));
 app.use(bodyParser.json());
-app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/api/auth', authRoutes); 
-app.use('/api/food', foodRoutes);
-app.use('/api/upload', uploadRoutes);
-
+// Routes
+app.use('/api/auth', authRoutes); // Auth routes don't require JWT
+app.use('/api/food',  foodRoutes);
+app.use('/api/upload', verifyJWT, uploadRoutes);
+app.use('/api/users', verifyJWT, masterRoutes);
+// app.use('/api/managers', verifyJWT, managerRoutes); // Register manager routes
 
 // Error handling middleware
 app.use((err, req, res, next) => {
+  console.error(err); // Log the error for debugging
   if (err instanceof ApiError) {
     return res.status(err.statusCode).json({
       success: err.success,
@@ -52,22 +60,27 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.get('*', (req, res) => {
-  res.status(404).send('Server Check');
-});
+// 404 handler
+// app.get('*', (req, res) => {
+//   res.status(404).send('Server Check');
+// });
 
 // Socket.IO setup
-io.on('connection', (socket) => {
-  console.log('A user connected');
+const setupSocketIO = (io) => {
+  io.on('connection', (socket) => {
+    console.log('A user connected');
 
-  socket.on('message', (msg) => {
-    console.log('message: ' + msg);
-    socket.broadcast.emit('message', msg);
-  });
+    socket.on('message', (msg) => {
+      console.log('message: ' + msg);
+      socket.broadcast.emit('message', msg);
+    });
 
-  socket.on('disconnect', () => {
-    console.log('User disconnected');
+    socket.on('disconnect', () => {
+      console.log('User disconnected');
+    });
   });
-});
+};
+
+setupSocketIO(io);
 
 export default server;

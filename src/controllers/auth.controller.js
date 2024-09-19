@@ -1,57 +1,113 @@
-import { MasterUser } from '../models/masterUser.model.js'; // Adjust path as needed
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';  // Ensure bcrypt is installed and used if needed
+import { MasterUser } from '../models/masterUser.model.js';
+import { ApiError } from '../utils/ApiError.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import jwt from 'jsonwebtoken'; // Make sure to import jwt
 
-// Function to login a master user
-export const loginMaster = async (req, res) => {
+// Super Admin Registration
+export const registerSuperAdmin = asyncHandler(async (req, res) => {
+    const { username, email, password } = req.body;
+
+    const existingUser = await MasterUser.findOne({ email });
+    if (existingUser) {
+        return res.status(400).json({ message: 'Email is already in use' });
+    }
+
+    const user = new MasterUser({
+        username,
+        email,
+        password, // Password will be hashed in pre-save hook
+        role: 'superAdmin'
+    });
+
+    await user.save();
+    res.status(201).json({ message: 'Super admin registered successfully' });
+});
+
+// Super Admin Login
+export const loginSuperAdmin = asyncHandler(async (req, res) => {
     const { username, password } = req.body;
 
-    try {
-        const masterUser = await MasterUser.findOne({ username });
-
-        if (!masterUser || !(await masterUser.isPasswordCorrect(password))) {
-            return res.status(400).json({ message: 'Invalid credentials' });
-        }
-
-        const token = jwt.sign(
-            { id: masterUser._id, role: 'master' },  // Include role if needed
-            process.env.JWT_SECRET,
-            { expiresIn: '1d' }
-        );
-
-        res.json({ token });
-    } catch (err) {
-        res.status(500).json({ message: 'Internal server error', error: err.message });
+    const user = await MasterUser.findOne({ username, role: 'superAdmin' });
+    if (!user) {
+        throw new ApiError(401, "Invalid credentials");
     }
-};
 
-// Middleware to authenticate and verify JWT
-export const authenticateToken = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    // Use the method from the model to check the password
+    const isMatch = await user.isPasswordCorrect(password);
+    if (!isMatch) {
+        throw new ApiError(401, "Invalid credentials");
+    }
 
-    if (token == null) return res.status(401).json({ message: 'Token required' });
+    // Token generation logic
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-        if (err) return res.status(403).json({ message: 'Forbidden' });
+    res
+        .status(200)
+        .cookie("accessToken", accessToken, { httpOnly: true })
+        .cookie("refreshToken", refreshToken, { httpOnly: true })
+        .json({ message: "Login successful", user: { id: user._id, username: user.username } });
+});
 
-        req.user = user;
-        next();
+// Login for Restaurant Owner
+export const loginRestaurantOwner = asyncHandler(async (req, res) => {
+    const { emailOrUsername, password } = req.body;
+
+    const user = await MasterUser.findOne({
+        $or: [{ email: emailOrUsername }, { username: emailOrUsername }],
+        role: 'restaurantOwner'
     });
-};
 
-// Example of a protected route
-export const getMasterData = (req, res) => {
-    // Access user from the request
-    const user = req.user;
+    if (!user) {
+        throw new ApiError(401, "Invalid credentials");
+    }
 
-    // Perform actions based on user role and permissions
-    res.json({ message: 'Protected data accessed', user });
-};
+    // Use the method from the model to check the password
+    const isMatch = await user.isPasswordCorrect(password);
+    if (!isMatch) {
+        throw new ApiError(401, "Invalid credentials");
+    }
 
-// Function to handle logout (optional)
-// This is a basic implementation and may need to be adapted if using a token blacklist
-export const logout = (req, res) => {
-    // In a real-world scenario, you might want to implement token blacklisting
-    res.json({ message: 'Logged out successfully' });
-};
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
+
+    res
+        .status(200)
+        .cookie("accessToken", accessToken, { httpOnly: true })
+        .cookie("refreshToken", refreshToken, { httpOnly: true })
+        .json({ message: "Login successful", user: { id: user._id, username: user.username } });
+});
+
+// Register a new Restaurant Owner (only for Super Admin)
+export const registerRestaurantOwner = asyncHandler(async (req, res) => {
+    const { username, email, password } = req.body;
+
+    if (!username || !email || !password) {
+        throw new ApiError(400, "All fields are required");
+    }
+
+    const existingUser = await MasterUser.findOne({ email });
+    if (existingUser) {
+        return res.status(400).json({ message: 'Email already in use' });
+    }
+
+    const user = new MasterUser({
+        username,
+        email,
+        password, // Password will be hashed in pre-save hook
+        role: 'restaurantOwner',
+    });
+
+    await user.save();
+    res.status(201).json({ message: 'Restaurant owner created successfully' });
+});
+
+// Get all Restaurant Owners (for Super Admin)
+export const getAllRestaurantOwners = asyncHandler(async (req, res) => {
+    const users = await MasterUser.find({ role: 'restaurantOwner' });
+    res.json(users);
+});
