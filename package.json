@@ -13,6 +13,7 @@
     "mongodb": "^6.9.0",
     "mongoose": "^8.6.2",
     "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.9.15",
     "socket.io": "^4.7.5",
     "socket.io-client": "^4.7.5",
     "ws": "^8.18.0"

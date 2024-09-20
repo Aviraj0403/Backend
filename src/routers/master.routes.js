@@ -6,12 +6,17 @@ import {
     // getSubscriptionStatus
 } from '../controllers/auth.controller.js';
 import { verifyJWT, isSuperAdmin, isRestaurantOwner } from '../middleware/auth.middleware.js';
+import { sendSubscriptionAlert, extendSubscription} from '../controllers/restaurant.controller.js';
 
 const router = express.Router();
 
 // Register a new restaurant owner (only for super admin)
 router.post('/register', verifyJWT, isSuperAdmin, registerRestaurantOwner);
+// In routes file, add this new route
+router.put('/restaurants/:restaurantId/extend-subscription', extendSubscription);
 
+
+router.post('/restaurants/:restaurantId/send-alert', sendSubscriptionAlert);
 // Get all restaurant owners
 // router.get('/', verifyJWT, isSuperAdmin, getAllRestaurantOwners);
 
