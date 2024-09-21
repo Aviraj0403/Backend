@@ -2,6 +2,12 @@ import mongoose, { Schema } from 'mongoose';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken'; // Ensure jwt is imported
 
+export const ROLES = {
+    SUPER_ADMIN: 'superAdmin',
+    RESTAURANT_OWNER: 'restaurantOwner',
+    MANAGER: 'manager',
+};
+
 const subscriptionSchema = new Schema({
     restaurantId: {
         type: Schema.Types.ObjectId,
@@ -48,17 +54,11 @@ const masterUserSchema = new Schema({
     },
     role: {
         type: String,
-        enum: ['superAdmin', 'restaurantOwner', 'manager'],
-        default: 'restaurantOwner'
+        enum: Object.values(ROLES),
+        default: ROLES.RESTAURANT_OWNER,
     },
-    restaurants: [
-        {
-            type: Schema.Types.ObjectId,
-            ref: 'Restaurant'
-        }
-    ],
-    subscriptionRecords: [subscriptionSchema]
-}, { timestamps: true });
+},
+{ timestamps: true });
 
 masterUserSchema.pre('save', async function(next) {
     if (this.isModified('password')) {
@@ -90,8 +90,15 @@ const MasterUser = mongoose.model('MasterUser', masterUserSchema);
 
 // Discriminator for Restaurant Owners
 const RestaurantOwnerSchema = new Schema({
+    restaurants: [
+        {
+            type: Schema.Types.ObjectId,
+            ref: 'Restaurant'
+        }
+    ],
     subscriptionRecords: [subscriptionSchema]
-});
+}, 
+{ timestamps: true });
 
 // Inherit from MasterUser
 const RestaurantOwner = MasterUser.discriminator('RestaurantOwner', RestaurantOwnerSchema);

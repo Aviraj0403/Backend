@@ -3,9 +3,9 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import jwt from "jsonwebtoken";
 import { MasterUser } from "../models/masterUser.model.js";
 
-// Helper function to extract the token from request
+// Helper function to extract the token from the request
 const extractToken = (req) => {
-    return req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
+    return req.cookies?.accessToken || req.headers["authorization"]?.replace("Bearer ", "");
 };
 
 // Helper function to retrieve user by ID

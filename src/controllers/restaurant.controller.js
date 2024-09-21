@@ -11,15 +11,52 @@ const transporter = nodemailer.createTransport({
     },
 });
 
-// Get all restaurants with subscription status
-export const getAllRestaurants = asyncHandler(async (req, res) => {
-    const restaurants = await Restaurant.find().populate('ownerId', 'username email');
 
-    if (!restaurants || restaurants.length === 0) {
+// Get all active restaurants owned by restaurant owners (excluding super admins)
+export const getAllRestaurants = asyncHandler(async (req, res) => {
+    const { status, page = 1, limit = 10 } = req.query; // Destructure status, page, and limit from query parameters
+
+    // Convert page and limit to numbers
+    const pageNumber = parseInt(page, 10);
+    const limitNumber = parseInt(limit, 10);
+
+    // Prepare query object for restaurants
+    const query = {};
+
+    // If a subscription status is provided, add it to the query
+    if (status) {
+        query.subscriptionRecords = { $elemMatch: { status } };
+    }
+
+    // Fetch restaurants where owner is not a super admin
+    const restaurants = await Restaurant.find(query)
+        .populate({
+            path: 'ownerId',
+            match: { role: { $ne: 'superAdmin' } }, // Exclude super admins
+            select: 'username email'
+        })
+        .skip((pageNumber - 1) * limitNumber)
+        .limit(limitNumber);
+
+    // Filter out any restaurants that were not associated with valid owners
+    const filteredRestaurants = restaurants.filter(restaurant => restaurant.ownerId);
+
+    // Count total number of valid restaurants for pagination purposes
+    const totalRestaurants = await Restaurant.countDocuments({
+        ...query,
+        ownerId: { $ne: null } // Ensuring there is an owner
+    });
+    
+    if (filteredRestaurants.length === 0) {
         return res.status(404).json({ message: 'No restaurants found' });
     }
 
-    res.json(restaurants);
+    res.json({
+        total: totalRestaurants,
+        page: pageNumber,
+        limit: limitNumber,
+        restaurants: filteredRestaurants,
+    });
 });
 
 // Send Subscription Renewal Alert
@@ -51,26 +88,31 @@ export const sendSubscriptionAlert = asyncHandler(async (req, res) => {
 });
 
 // Extend subscription for a restaurant
+// restaurant.controller.js
 export const extendSubscription = asyncHandler(async (req, res) => {
     const { restaurantId } = req.params;
     const { additionalMonths } = req.body;
 
     if (!additionalMonths || typeof additionalMonths !== 'number' || additionalMonths <= 0) {
-        return res.status(400).json({ message: 'Invalid input: additionalMonths must be a positive number' });
+        throw new ApiError(400, 'Invalid input: additionalMonths must be a positive number');
     }
 
-    const restaurant = await Restaurant.findById(restaurantId);
-
-    if (!restaurant) {
-        return res.status(404).json({ message: 'Restaurant not found' });
+    const owner = await MasterUser.findOne({ 'subscriptionRecords.restaurantId': restaurantId });
+    if (!owner) {
+        throw new ApiError(404, 'Restaurant owner not found');
     }
 
-    // Logic to extend the subscription
-    const currentExpiryDate = restaurant.subscriptionExpiryDate || new Date();
-    const newExpiryDate = new Date(currentExpiryDate.setMonth(currentExpiryDate.getMonth() + additionalMonths));
+    const subscription = owner.subscriptionRecords.find(sub => sub.restaurantId.toString() === restaurantId);
+    if (!subscription) {
+        throw new ApiError(404, 'Subscription not found');
+    }
 
-    restaurant.subscriptionExpiryDate = newExpiryDate;
-    await restaurant.save();
+    // Extend subscription logic
+    const newEndDate = new Date(subscription.endDate);
+    newEndDate.setMonth(newEndDate.getMonth() + additionalMonths);
+    
+    subscription.endDate = newEndDate;
+    await owner.save();
 
-    res.json({ message: 'Subscription extended successfully', newExpiryDate });
+    res.json({ message: 'Subscription extended successfully', newExpiryDate: newEndDate });
 });
