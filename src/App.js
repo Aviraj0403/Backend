@@ -11,7 +11,6 @@ import { ApiError } from './utils/ApiError.js';
 import authRoutes from './routers/auth.routes.js';
 import foodRoutes from './routers/food.routes.js'; 
 import uploadRoutes from './routers/upload.routes.js';
-// import managerRoutes from './routers/manager.routes.js';
 import masterRoutes from './routers/master.routes.js';
 import { verifyJWT } from './middleware/auth.middleware.js';
 
@@ -29,20 +28,21 @@ const io = new Server(server, {
 });
 
 // Middleware
-app.use(cors({
-  origin: 'http://localhost:5173', // Allow only your frontend origin
+const corsOptions = {
+  origin:  'http://localhost:5173', // Allow only your frontend origin
   credentials: true // Allow credentials (cookies, etc.)
-}));
+};
+
+app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes); // Auth routes don't require JWT
-app.use('/api/food',  foodRoutes);
+app.use('/api/food', foodRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/users', verifyJWT, masterRoutes);
-// app.use('/api/managers', verifyJWT, managerRoutes); // Register manager routes
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -62,9 +62,9 @@ app.use((err, req, res, next) => {
 });
 
 // 404 handler
-// app.get('*', (req, res) => {
-//   res.status(404).send('Server Check');
-// });
+app.use((req, res) => {
+  res.status(404).json({ message: 'Not Found' });
+});
 
 // Socket.IO setup
 const setupSocketIO = (io) => {
