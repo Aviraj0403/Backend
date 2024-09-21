@@ -30,7 +30,8 @@ const io = new Server(server, {
 
 // Middleware
 app.use(cors({
-  credentials: true 
+  origin: 'http://localhost:5173', // Allow only your frontend origin
+  credentials: true // Allow credentials (cookies, etc.)
 }));
 app.use(bodyParser.json());
 app.use(express.json());

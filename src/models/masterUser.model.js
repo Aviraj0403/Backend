@@ -73,9 +73,11 @@ masterUserSchema.methods.isPasswordCorrect = async function(password) {
 
 // Method to generate access token
 masterUserSchema.methods.generateAccessToken = function() {
-    return jwt.sign({ _id: this._id, role: this.role }, process.env.ACCESS_TOKEN_SECRET, {
+    const token = jwt.sign({ _id: this._id, role: this.role }, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: '1h'
     });
+    console.log("Generated Access Token:", token); // Log the generated token
+    return token; // Return the generated token
 };
 
 // Method to generate refresh token

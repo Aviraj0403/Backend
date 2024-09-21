@@ -5,6 +5,7 @@ import { MasterUser } from "../models/masterUser.model.js";
 
 // Helper function to extract the token from the request
 const extractToken = (req) => {
+
     return req.cookies?.accessToken || req.headers["authorization"]?.replace("Bearer ", "");
 };
 
@@ -15,6 +16,7 @@ const getUserById = async (userId) => {
 
 // Middleware to verify JWT
 export const verifyJWT = asyncHandler(async (req, _, next) => {
+    console.log("Request headers:", req.headers);
     try {
         const token = extractToken(req);
 
@@ -23,7 +25,8 @@ export const verifyJWT = asyncHandler(async (req, _, next) => {
         }
 
         const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-        const user = await getUserById(decodedToken?._id);
+        console.log("Decoded Token:", decodedToken);
+        const user = await getUserById(decodedToken?._id).select("-password -refreshToken");
 
         if (!user) {
             throw new ApiError(401, "Invalid Access Token: User not found");

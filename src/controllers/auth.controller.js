@@ -11,6 +11,7 @@ const userExists = async (email) => {
 // Handle token generation and cookie setting
 const setTokensAndCookies = async (res, user) => {
     const accessToken = user.generateAccessToken();
+    console.log("Access Token:", accessToken);
     const refreshToken = user.generateRefreshToken();
     user.refreshToken = refreshToken;
 
@@ -31,6 +32,27 @@ const setTokensAndCookies = async (res, user) => {
         })
         .json({ message: "Login successful", user: { id: user._id, username: user.username }, accessToken });
 };
+// In your auth.controller.js
+export const checkSuperAdmin = async (req, res) => {
+    console.log("Checking Super Admin access...");
+
+    // Verify if user is authenticated
+    if (!req.user) {
+        console.error("User not authenticated");
+        return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    // Check if the user's role is superAdmin
+    if (req.user.role !== 'superAdmin') {
+        console.error("Access denied: User is not a super admin");
+        return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // If authorized, send a success response
+    console.log("Super Admin access granted");
+    return res.status(200).json({ message: 'Authorized' });
+};
+
 
 // Super Admin Registration
 export const registerSuperAdmin = asyncHandler(async (req, res) => {
