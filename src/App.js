@@ -39,7 +39,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/auth', authRoutes); // Auth routes don't require JWT
 app.use('/api/food',  foodRoutes);
-app.use('/api/upload', verifyJWT, uploadRoutes);
+app.use('/api/upload', uploadRoutes);
 app.use('/api/users', verifyJWT, masterRoutes);
 // app.use('/api/managers', verifyJWT, managerRoutes); // Register manager routes
 

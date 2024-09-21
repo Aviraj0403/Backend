@@ -6,39 +6,34 @@ import {
     // getSubscriptionStatus
 } from '../controllers/auth.controller.js';
 import { verifyJWT, isSuperAdmin, isRestaurantOwner } from '../middleware/auth.middleware.js';
-import { sendSubscriptionAlert, extendSubscription} from '../controllers/restaurant.controller.js';
+import { sendSubscriptionAlert, extendSubscription } from '../controllers/restaurant.controller.js';
 
 const router = express.Router();
 
 // Register a new restaurant owner (only for super admin)
 router.post('/register', verifyJWT, isSuperAdmin, registerRestaurantOwner);
-// In routes file, add this new route
-router.put('/restaurants/:restaurantId/extend-subscription', extendSubscription);
 
+// Extend a restaurant's subscription
+router.put('/restaurants/:restaurantId/extend-subscription', verifyJWT, isRestaurantOwner, extendSubscription);
 
-router.post('/restaurants/:restaurantId/send-alert', sendSubscriptionAlert);
-// Get all restaurant owners
+// Send subscription alert
+router.post('/restaurants/:restaurantId/send-alert', verifyJWT, isRestaurantOwner, sendSubscriptionAlert);
+
+// Get all restaurant owners (optional, uncomment if needed)
 // router.get('/', verifyJWT, isSuperAdmin, getAllRestaurantOwners);
 
-// Add a subscription for a restaurant owner
+// Add a subscription for a restaurant owner (optional, uncomment if needed)
 // router.post('/subscription', verifyJWT, isRestaurantOwner, addSubscription);
 
-// Get subscription status for a specific restaurant
+// Get subscription status for a specific restaurant (optional, uncomment if needed)
 // router.get('/subscription/:restaurantId/status', verifyJWT, isRestaurantOwner, getSubscriptionStatus);
 
-// Optional: Additional endpoints for updating or removing subscriptions could be added here
-
-export default router;
-
-//Optional: You can add more endpoints as needed
-// Example: Update subscription details or remove a subscription
-
-// Example: Update subscription (not implemented here)
-// router.put('/subscription/:subscriptionId', isRestaurantOwner, updateSubscription);
+// Example: Update subscription details (not implemented here)
+// router.put('/subscription/:subscriptionId', verifyJWT, isRestaurantOwner, updateSubscription);
 
 // Example: Remove subscription (not implemented here)
-// router.delete('/subscription/:subscriptionId', isRestaurantOwner, removeSubscription);
-/* router.put('/subscription/:subscriptionId', verifyJWT, isRestaurantOwner, updateSubscription);
+// router.delete('/subscription/:subscriptionId', verifyJWT, isRestaurantOwner, removeSubscription);
 
-// Remove subscription
-router.delete('/subscription/:subscriptionId', verifyJWT, isRestaurantOwner, removeSubscription);*/
+// Optional: Additional endpoints for managing subscriptions could be added here
+
+export default router;

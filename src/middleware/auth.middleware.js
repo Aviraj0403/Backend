@@ -3,18 +3,27 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import jwt from "jsonwebtoken";
 import { MasterUser } from "../models/masterUser.model.js";
 
+// Helper function to extract the token from request
+const extractToken = (req) => {
+    return req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
+};
+
+// Helper function to retrieve user by ID
+const getUserById = async (userId) => {
+    return await MasterUser.findById(userId).select("-password");
+};
+
 // Middleware to verify JWT
 export const verifyJWT = asyncHandler(async (req, _, next) => {
     try {
-        const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
+        const token = extractToken(req);
 
         if (!token) {
             throw new ApiError(401, "Unauthorized request: No token provided");
         }
 
         const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-
-        const user = await MasterUser.findById(decodedToken?._id).select("-password ");
+        const user = await getUserById(decodedToken?._id);
 
         if (!user) {
             throw new ApiError(401, "Invalid Access Token: User not found");
@@ -24,11 +33,10 @@ export const verifyJWT = asyncHandler(async (req, _, next) => {
         next();
     } catch (error) {
         console.error("JWT Verification Error:", error);
-        throw new ApiError(401, error?.message || "Invalid access token");
+        next(new ApiError(401, error?.message || "Invalid access token"));
     }
 });
 
-// Role-checking middleware
 // Role-checking middleware
 const checkRole = (roles) => {
     return (req, res, next) => {
@@ -44,6 +52,9 @@ const checkRole = (roles) => {
     };
 };
 
-// Usage examples
+// Exporting role-checking middlewares
 export const isSuperAdmin = checkRole(['superAdmin']);
 export const isRestaurantOwner = checkRole(['restaurantOwner']);
+
+// Optional: For greater flexibility in role management
+export const hasRoles = (...roles) => checkRole(roles);

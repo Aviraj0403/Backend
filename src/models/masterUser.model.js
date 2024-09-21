@@ -85,4 +85,17 @@ masterUserSchema.methods.generateRefreshToken = function() {
     });
 };
 
-export const MasterUser = mongoose.model('MasterUser', masterUserSchema);
+// Creating User Models
+const MasterUser = mongoose.model('MasterUser', masterUserSchema);
+
+// Discriminator for Restaurant Owners
+const RestaurantOwnerSchema = new Schema({
+    subscriptionRecords: [subscriptionSchema]
+});
+
+// Inherit from MasterUser
+const RestaurantOwner = MasterUser.discriminator('RestaurantOwner', RestaurantOwnerSchema);
+
+// Optional: You can create a separate model for Super Admin if needed
+
+export { MasterUser, RestaurantOwner };

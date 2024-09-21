@@ -38,10 +38,8 @@ export const uploadImage = async (req, res, next) => {
     console.log('Cloudinary upload result:', result);
 
     // Remove file from local 'uploads' folder after upload
-    fs.unlink(filePath, (err) => {
-      if (err) {
-        console.error('Error deleting local file:', err);
-      }
+    await fs.promises.unlink(filePath).catch(err => {
+      console.error('Error deleting local file:', err);
     });
 
     // Respond with the image URL
