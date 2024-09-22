@@ -107,4 +107,4 @@ const RestaurantOwner = MasterUser.discriminator('RestaurantOwner', RestaurantOw
 
 // Optional: You can create a separate model for Super Admin if needed
 
-export { MasterUser, RestaurantOwner };
+export { MasterUser, RestaurantOwner,subscriptionSchema };

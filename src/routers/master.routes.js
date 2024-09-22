@@ -7,7 +7,7 @@ import {
     
 } from '../controllers/auth.controller.js';
 import { verifyJWT, isSuperAdmin, isRestaurantOwner } from '../middleware/auth.middleware.js';
-import { sendSubscriptionAlert, extendSubscription,getAllRestaurants } from '../controllers/restaurant.controller.js';
+import { sendSubscriptionAlert, extendSubscription,getAllRestaurants,getRestaurantOwnerProfile } from '../controllers/restaurant.controller.js';
 
 const router = express.Router();
 
@@ -16,6 +16,10 @@ router.post('/register', verifyJWT, isSuperAdmin, registerRestaurantOwner);
 
 // Get all restaurants (accessible by super admin and restaurant owners)
 router.get('/restaurants', verifyJWT, isSuperAdmin,getAllRestaurants); // Optionally, add isRestaurantOwner if needed
+
+
+// Protected route for retrieving restaurant owner profile
+router.get('/profile/:ownerId', verifyJWT, isSuperAdmin, getRestaurantOwnerProfile);
 
 // Extend a restaurant's subscription
 router.put('/restaurants/:restaurantId/extend-subscription', verifyJWT, isRestaurantOwner, extendSubscription);
