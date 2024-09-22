@@ -158,3 +158,23 @@ export const getRestaurantOwnerProfile = asyncHandler(async (req, res) => {
         throw new ApiError(500, "An error occurred while fetching the owner profile: " + error.message);
     }
 });
+
+ // Adjust the path as necessary
+
+// Get restaurant details by ID
+export const getRestaurantById = async (req, res) => {
+    const { restaurantId } = req.params;
+    
+    try {
+        const restaurant = await Restaurant.findById(restaurantId).populate('ownerId', 'username').populate('managerId', 'username').populate('menuItems');
+        
+        if (!restaurant) {
+            return res.status(404).json({ message: 'Restaurant not found' });
+        }
+
+        res.status(200).json({ restaurant });
+    } catch (error) {
+        console.error("Error fetching restaurant:", error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};

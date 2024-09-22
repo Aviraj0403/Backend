@@ -7,7 +7,9 @@ import {
     
 } from '../controllers/auth.controller.js';
 import { verifyJWT, isSuperAdmin, isRestaurantOwner } from '../middleware/auth.middleware.js';
-import { sendSubscriptionAlert, extendSubscription,getAllRestaurants,getRestaurantOwnerProfile } from '../controllers/restaurant.controller.js';
+import { sendSubscriptionAlert, extendSubscription,getAllRestaurants,getRestaurantOwnerProfile,
+    getRestaurantById
+ } from '../controllers/restaurant.controller.js';
 
 const router = express.Router();
 
@@ -24,6 +26,8 @@ router.get('/profile/:ownerId', verifyJWT, isSuperAdmin, getRestaurantOwnerProfi
 // Extend a restaurant's subscription
 router.put('/restaurants/:restaurantId/extend-subscription', verifyJWT, isRestaurantOwner, extendSubscription);
 
+// Get restaurant details by ID
+router.get('/restaurants/:restaurantId', verifyJWT, isRestaurantOwner, getRestaurantById);
 // Send subscription alert
 router.post('/restaurants/:restaurantId/send-alert', verifyJWT, isRestaurantOwner, sendSubscriptionAlert);
 
