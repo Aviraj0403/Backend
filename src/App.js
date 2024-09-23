@@ -16,6 +16,7 @@ import uploadRoutes from './routers/upload.routes.js';
 import masterRoutes from './routers/master.routes.js';
 import { verifyJWT } from './middleware/auth.middleware.js';
 
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -46,6 +47,7 @@ const corsOptions = {
 };
 app.use(helmet());
 app.use(cookieParser());
+
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(express.json());

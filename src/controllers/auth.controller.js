@@ -25,7 +25,7 @@ const setTokensAndCookies = async (res, user) => {
 
     // Generate CSRF token
     const csrfToken = generateCsrfToken();
-
+    console.log("CSRF Token set in cookie:", csrfToken);
     // Set cookies
     res
         .cookie("accessToken", accessToken, {

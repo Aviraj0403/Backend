@@ -56,14 +56,12 @@ const checkRole = (roles) => {
 // Exporting role-checking middlewares
 export const isSuperAdmin = checkRole(['superAdmin']);
 export const isRestaurantOwner = checkRole(['restaurantOwner']);
-
-// Flexible role management
 export const hasRoles = (...roles) => checkRole(roles);
 
 // CSRF Protection Middleware
 export const csrfProtectionMiddleware = (req, res, next) => {
-    const csrfToken = req.cookies.csrfToken; // Assumed to be set during session creation
-    const clientToken = req.headers['x-csrf-token'];
+    const csrfToken = req.cookies.csrfToken; // CSRF token from cookies
+    const clientToken = req.headers['x-csrf-token']; // CSRF token from request headers
 
     if (!csrfToken || csrfToken !== clientToken) {
         return res.status(403).json({ message: 'CSRF token validation failed' });
@@ -71,7 +69,10 @@ export const csrfProtectionMiddleware = (req, res, next) => {
 
     next();
 };
+
 // Function to generate a CSRF token
-const generateCsrfToken = () => {
+export const generateCsrfToken = () => {
     return crypto.randomBytes(32).toString('hex');
 };
+
+

@@ -9,7 +9,7 @@ import {
 import { verifyJWT, isSuperAdmin, csrfProtectionMiddleware } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
-
+router.use(csrfProtectionMiddleware)
 // Super Admin routes
 router.post('/superadmin/register', verifyJWT, isSuperAdmin, csrfProtectionMiddleware, registerSuperAdmin);
 router.post('/superadmin/login',  loginSuperAdmin); // Login doesn't need JWT
