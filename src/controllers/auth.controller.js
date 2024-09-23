@@ -2,27 +2,35 @@ import { MasterUser, RestaurantOwner } from '../models/masterUser.model.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { Restaurant } from '../models/restaurant.model.js';
+import crypto from 'crypto';
 
 // Check if user exists by email
 const userExists = async (email) => {
     return await MasterUser.findOne({ email });
 };
 
+// Generate a CSRF token
+const generateCsrfToken = () => {
+    return crypto.randomBytes(32).toString('hex');
+};
+
 // Handle token generation and cookie setting
 const setTokensAndCookies = async (res, user) => {
     const accessToken = user.generateAccessToken();
-    console.log("Access Token:", accessToken);
     const refreshToken = user.generateRefreshToken();
     user.refreshToken = refreshToken;
 
     // Save the refresh token in the database
-    await user.save({ validateBeforeSave: false }); // Await the save
+    await user.save({ validateBeforeSave: false });
 
-    return res
-        .status(200)
+    // Generate CSRF token
+    const csrfToken = generateCsrfToken();
+
+    // Set cookies
+    res
         .cookie("accessToken", accessToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
+            secure: process.env.NODE_ENV === "production", // Use secure cookies in production
             sameSite: 'Strict',
         })
         .cookie("refreshToken", refreshToken, {
@@ -30,29 +38,27 @@ const setTokensAndCookies = async (res, user) => {
             secure: process.env.NODE_ENV === "production",
             sameSite: 'Strict',
         })
-        .json({ message: "Login successful", user: { id: user._id, username: user.username }, accessToken });
+        .cookie("csrfToken", csrfToken, {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: 'Strict',
+        })
+        .status(200)
+        .json({ message: "Login successful", user: { id: user._id, username: user.username }, csrfToken });
 };
-// In your auth.controller.js
-export const checkSuperAdmin = async (req, res) => {
-    console.log("Checking Super Admin access...");
 
-    // Verify if user is authenticated
+// Check if the user is a super admin
+export const checkSuperAdmin = async (req, res) => {
     if (!req.user) {
-        console.error("User not authenticated");
         return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    // Check if the user's role is superAdmin
     if (req.user.role !== 'superAdmin') {
-        console.error("Access denied: User is not a super admin");
         return res.status(403).json({ message: 'Access denied' });
     }
 
-    // If authorized, send a success response
-    console.log("Super Admin access granted");
     return res.status(200).json({ message: 'Authorized' });
 };
-
 
 // Super Admin Registration
 export const registerSuperAdmin = asyncHandler(async (req, res) => {
@@ -66,7 +72,7 @@ export const registerSuperAdmin = asyncHandler(async (req, res) => {
     const user = new MasterUser({
         username,
         email,
-        password, // Password will be hashed in pre-save hook
+        password,
         role: 'superAdmin'
     });
 
@@ -117,16 +123,14 @@ export const registerRestaurantOwner = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'Restaurant name already in use');
     }
 
-    // Create a Restaurant Owner
     const user = new RestaurantOwner({
         username,
         email,
-        password, // Password will be hashed in pre-save hook
+        password,
     });
 
     await user.save();
 
-    // Create the restaurant
     const restaurant = new Restaurant({
         name: restaurantName,
         ownerId: user._id,
@@ -136,15 +140,14 @@ export const registerRestaurantOwner = asyncHandler(async (req, res) => {
 
     await restaurant.save();
 
-    // Associate restaurant with the owner
     user.restaurants.push(restaurant._id);
     await user.save();
 
-    // Optionally, initialize subscription for the restaurant
+    // Initialize subscription for the restaurant
     const subscription = {
         restaurantId: restaurant._id,
         startDate: new Date(),
-        endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)), // One month subscription
+        endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
         status: 'active',
         plan: 'monthly',
     };

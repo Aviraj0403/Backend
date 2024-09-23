@@ -4,23 +4,28 @@ import {
     loginSuperAdmin,
     registerRestaurantOwner,
     loginRestaurantOwner,
-    checkSuperAdmin, // Import the checkSuperAdmin controller
+    checkSuperAdmin,
 } from '../controllers/auth.controller.js';
-import { verifyJWT, isSuperAdmin } from '../middleware/auth.middleware.js';
+import { verifyJWT, isSuperAdmin, csrfProtectionMiddleware } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
 // Super Admin routes
-router.post('/superadmin/register', registerSuperAdmin);
-router.post('/superadmin/login', loginSuperAdmin);
+router.post('/superadmin/register', verifyJWT, isSuperAdmin, csrfProtectionMiddleware, registerSuperAdmin);
+router.post('/superadmin/login',  loginSuperAdmin); // Login doesn't need JWT
 
-// Check if user is a super admin (Protected)
-router.get('/check-superadmin', verifyJWT, isSuperAdmin, checkSuperAdmin);
+// Protected route to check if the user is a super admin
+router.get('/superadmin/check', verifyJWT, isSuperAdmin, checkSuperAdmin);
 
 // Restaurant Owner routes (Protected)
-router.post('/restaurantowner/register', verifyJWT, isSuperAdmin, registerRestaurantOwner); // Only super admin can register restaurant owners
-router.post('/restaurantowner/login', loginRestaurantOwner);
+router.post('/restaurantowner/register', verifyJWT, isSuperAdmin, registerRestaurantOwner);
+router.post('/restaurantowner/login', loginRestaurantOwner); // Login doesn't need JWT
 
-// Optional: Add any additional routes as needed
+// Optional: Add more super admin-specific routes
+router.get('/superadmin/dashboard', verifyJWT, isSuperAdmin, (req, res) => {
+    res.status(200).json({ message: 'Welcome to the Super Admin Dashboard' });
+});
+
+// More routes can be added here...
 
 export default router;

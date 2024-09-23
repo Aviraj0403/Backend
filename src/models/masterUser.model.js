@@ -76,7 +76,7 @@ masterUserSchema.methods.generateAccessToken = function() {
     const token = jwt.sign({ _id: this._id, role: this.role }, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: '1h'
     });
-    console.log("Generated Access Token:", token); // Log the generated token
+    // console.log("Generated Access Token:", token); // Log the generated token
     return token; // Return the generated token
 };
 

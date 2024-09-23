@@ -8,6 +8,8 @@ import dotenv from 'dotenv';
 import http from 'http';  // Import the HTTP module
 import { Server } from 'socket.io';  // Import Socket.IO
 import { ApiError } from './utils/ApiError.js';
+import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import authRoutes from './routers/auth.routes.js';
 import foodRoutes from './routers/food.routes.js'; 
 import uploadRoutes from './routers/upload.routes.js';
@@ -29,10 +31,21 @@ const io = new Server(server, {
 
 // Middleware
 const corsOptions = {
-  origin:  'http://localhost:5173', // Allow only your frontend origin
+  origin: (origin, callback) => {
+    const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(o => o.trim());
+    
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.error(`CORS error: Origin ${origin} is not allowed`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true // Allow credentials (cookies, etc.)
 };
-
+app.use(helmet());
+app.use(cookieParser());
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(express.json());
