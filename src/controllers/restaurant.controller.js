@@ -121,6 +121,7 @@ export const extendSubscription = asyncHandler(async (req, res) => {
 });
 
 // Retrieve Restaurant Owner Profile
+ 
 export const getRestaurantOwnerProfile = asyncHandler(async (req, res) => {
     const { ownerId } = req.params;
     console.log("Owner ID:", ownerId);
@@ -130,7 +131,7 @@ export const getRestaurantOwnerProfile = asyncHandler(async (req, res) => {
     if (!req.user) {
         throw new ApiError(401, "User not authenticated");
     }
-    
+
     // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(ownerId)) {
         console.log("Invalid ObjectId format");
@@ -140,11 +141,11 @@ export const getRestaurantOwnerProfile = asyncHandler(async (req, res) => {
     try {
         // Fetch the owner with related restaurants and subscriptions
         const ownerProfile = await RestaurantOwner.findById(ownerId)
-            .populate('restaurants', 'name') // Populate with restaurant names
+            .populate('restaurants', 'name location') // Include more restaurant fields if needed
             .populate({
-                path: 'subscriptionRecords.restaurantId', // Adjust if needed
-                model: 'Restaurant', // Ensure this is your model name for restaurants
-                select: 'name' // Specify fields to include
+                path: 'subscriptionRecords.restaurantId', // Path to restaurant in subscription records
+                model: 'Restaurant', // Ensure this matches your restaurant model name
+                select: 'name status location', // Specify fields to include
             });
 
         if (!ownerProfile) {
@@ -152,12 +153,24 @@ export const getRestaurantOwnerProfile = asyncHandler(async (req, res) => {
             throw new ApiError(404, "Restaurant owner not found");
         }
 
-        res.status(200).json(ownerProfile);
+        // Include all necessary fields from the MasterUser schema
+        const responseData = {
+            _id: ownerProfile._id,
+            username: ownerProfile.username,
+            email: ownerProfile.email,
+            restaurants: ownerProfile.restaurants,
+            subscriptionRecords: ownerProfile.subscriptionRecords,
+            createdAt: ownerProfile.createdAt,
+            updatedAt: ownerProfile.updatedAt,
+        };
+
+        res.status(200).json(responseData);
     } catch (error) {
         console.error("Error fetching owner profile:", error);
         throw new ApiError(500, "An error occurred while fetching the owner profile: " + error.message);
     }
 });
+
 
  // Adjust the path as necessary
 

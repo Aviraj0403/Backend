@@ -157,3 +157,20 @@ export const registerRestaurantOwner = asyncHandler(async (req, res) => {
 
     res.status(201).json({ message: 'Restaurant owner and restaurant created successfully', ownerId: user._id, restaurantId: restaurant._id });
 });
+
+// Logout function
+// Logout function
+export const logoutUser = asyncHandler(async (req, res) => {
+    const userId = req.user?._id; // Assuming req.user is set by your JWT middleware
+
+    if (userId) {
+        await MasterUser.findByIdAndUpdate(userId, { refreshToken: null }); // Revoke the refresh token in DB
+    }
+
+    res.clearCookie("accessToken", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: 'Strict' });
+    res.clearCookie("refreshToken", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: 'Strict' });
+    res.clearCookie("csrfToken", { httpOnly: false, secure: process.env.NODE_ENV === "production", sameSite: 'Strict' });
+
+    return res.status(200).json({ message: "Logged out successfully" });
+});
+

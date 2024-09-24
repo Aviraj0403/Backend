@@ -30,7 +30,13 @@ const subscriptionSchema = new Schema({
     plan: {
         type: String, // e.g., "monthly", "yearly"
         required: true
-    }
+    },
+    paymentStatus: { type: String, enum: ['paid', 'pending', 'failed'], default: 'pending' },
+    paymentMethod: { type: String, required: true },
+    createdAt: {
+        type: Date,
+        default: Date.now
+    },
 }, { timestamps: true });
 
 const masterUserSchema = new Schema({
@@ -56,6 +62,9 @@ const masterUserSchema = new Schema({
         type: String,
         enum: Object.values(ROLES),
         default: ROLES.RESTAURANT_OWNER,
+    },
+    profilePicture: {
+        type: String, // Optional profile picture URL
     },
 },
 { timestamps: true });

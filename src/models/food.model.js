@@ -61,6 +61,11 @@ const foodSchema = new mongoose.Schema(
       type: String,
       required: true, // Cloudinary image URL is required
     },
+    restaurantId: { // Add this line to reference the restaurant
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Restaurant', // Reference to the Restaurant model
+      required: true, // Make it required to ensure every food item has an associated restaurant
+    },
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt fields
