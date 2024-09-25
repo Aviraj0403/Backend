@@ -67,22 +67,25 @@ const masterUserSchema = new Schema({
         type: String, // Optional profile picture URL
     },
 },
-{ timestamps: true });
+    { timestamps: true });
 
-masterUserSchema.pre('save', async function(next) {
+masterUserSchema.pre('save', async function (next) {
     if (this.isModified('password')) {
         this.password = await bcrypt.hash(this.password, 10);
     }
     next();
 });
 
-masterUserSchema.methods.isPasswordCorrect = async function(password) {
+masterUserSchema.methods.isPasswordCorrect = async function (password) {
     return bcrypt.compare(password, this.password);
 };
 
 // Method to generate access token
-masterUserSchema.methods.generateAccessToken = function() {
-    const token = jwt.sign({ _id: this._id, role: this.role }, process.env.ACCESS_TOKEN_SECRET, {
+masterUserSchema.methods.generateAccessToken = function () {
+    const token = jwt.sign({
+        _id: this._id,
+        username: this.username, role: this.role
+    }, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: '1h'
     });
     // console.log("Generated Access Token:", token); // Log the generated token
@@ -90,8 +93,12 @@ masterUserSchema.methods.generateAccessToken = function() {
 };
 
 // Method to generate refresh token
-masterUserSchema.methods.generateRefreshToken = function() {
-    return jwt.sign({ _id: this._id, role: this.role }, process.env.REFRESH_TOKEN_SECRET, {
+masterUserSchema.methods.generateRefreshToken = function () {
+    return jwt.sign({
+        _id: this._id,
+        username: this.username,
+        role: this.role
+    }, process.env.REFRESH_TOKEN_SECRET, {
         expiresIn: '7d'
     });
 };
@@ -108,12 +115,12 @@ const RestaurantOwnerSchema = new Schema({
         }
     ],
     subscriptionRecords: [subscriptionSchema]
-}, 
-{ timestamps: true });
+},
+    { timestamps: true });
 
 // Inherit from MasterUser
 const RestaurantOwner = MasterUser.discriminator('RestaurantOwner', RestaurantOwnerSchema);
 
 // Optional: You can create a separate model for Super Admin if needed
 
-export { MasterUser, RestaurantOwner,subscriptionSchema };
+export { MasterUser, RestaurantOwner, subscriptionSchema };

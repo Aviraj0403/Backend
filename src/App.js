@@ -29,7 +29,8 @@ const io = new Server(server, {
     origin: process.env.CORS_ORIGIN || "*", // Use environment variable for CORS
   }
 });
-
+app.use(helmet());
+app.use(cookieParser());
 // Middleware
 const corsOptions = {
   origin: (origin, callback) => {
@@ -45,8 +46,7 @@ const corsOptions = {
   },
   credentials: true // Allow credentials (cookies, etc.)
 };
-app.use(helmet());
-app.use(cookieParser());
+
 
 app.use(cors(corsOptions));
 app.use(bodyParser.json());

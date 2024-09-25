@@ -3,6 +3,7 @@ import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { Restaurant } from '../models/restaurant.model.js';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 
 // Check if user exists by email
 const userExists = async (email) => {
@@ -13,6 +14,46 @@ const userExists = async (email) => {
 const generateCsrfToken = () => {
     return crypto.randomBytes(32).toString('hex');
 };
+
+// Refresh Token
+export const refreshAccessToken = asyncHandler(async (req, res) => {
+    const refreshToken = req.cookies.refreshToken; // Get refresh token from cookies
+    if (!refreshToken) {
+        throw new ApiError(401, "Refresh token not found"); // No refresh token provided
+    }
+
+    // Verify the refresh token
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    const user = await MasterUser.findById(decoded._id); // Find the user
+
+    if (!user) {
+        throw new ApiError(403, "Forbidden in refresh token"); // User not found
+    }
+
+    // Generate new access and refresh tokens
+    const accessToken = user.generateAccessToken(); // Use existing method
+    const newRefreshToken = user.generateRefreshToken(); // Generate new refresh token
+
+    user.refreshToken = newRefreshToken; // Update the refresh token in the user model
+    await user.save({ validateBeforeSave: false }); // Save the user with new refresh token
+
+    // Set new tokens in cookies
+    res.cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production", // Use secure in production
+        sameSite: 'Strict',
+        path: '/'
+    });
+
+    res.cookie("refreshToken", newRefreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: 'Strict',
+        path: '/'
+    });
+
+    res.status(200).json({ accessToken, refreshToken: newRefreshToken }); // Send new tokens
+});
 
 // Handle token generation and cookie setting
 const setTokensAndCookies = async (res, user) => {
@@ -26,25 +67,29 @@ const setTokensAndCookies = async (res, user) => {
     // Generate CSRF token
     const csrfToken = generateCsrfToken();
     console.log("CSRF Token set in cookie:", csrfToken);
+
     // Set cookies
     res
         .cookie("accessToken", accessToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+            secure: process.env.NODE_ENV === "production", // Use secure in production
             sameSite: 'Strict',
+            path: '/'
         })
         .cookie("refreshToken", refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: 'Strict',
+            path: '/'
         })
         .cookie("csrfToken", csrfToken, {
             httpOnly: false,
             secure: process.env.NODE_ENV === "production",
             sameSite: 'Strict',
+            path: '/'
         })
         .status(200)
-        .json({ message: "Login successful", user: { id: user._id, username: user.username }, csrfToken });
+        .json({ message: "Login successful", user: { id: user._id, username: user.username }, csrfToken , accessToken ,refreshAccessToken});
 };
 
 // Check if the user is a super admin
@@ -106,21 +151,16 @@ export const loginRestaurantOwner = asyncHandler(async (req, res) => {
 
 // Register a new Restaurant Owner (only for Super Admin)
 export const registerRestaurantOwner = asyncHandler(async (req, res) => {
-    const { username, email, password, restaurantName, restaurantLocation, contactInfo } = req.body;
+    const { username, email, password, restaurantName, restaurantLocation, contactInfo, subscription } = req.body;
 
-    if (!username || !email || !password || !restaurantName || !restaurantLocation) {
+    // Validate required fields
+    if (!username || !email || !password || !restaurantName || !restaurantLocation || !subscription || !subscription.paymentMethod) {
         throw new ApiError(400, "All fields are required");
     }
 
     const existingUser = await userExists(email);
     if (existingUser) {
         throw new ApiError(400, 'Email already in use');
-    }
-
-    // Check if the restaurant already exists
-    const existingRestaurant = await Restaurant.findOne({ name: restaurantName });
-    if (existingRestaurant) {
-        throw new ApiError(400, 'Restaurant name already in use');
     }
 
     const user = new RestaurantOwner({
@@ -143,34 +183,30 @@ export const registerRestaurantOwner = asyncHandler(async (req, res) => {
     user.restaurants.push(restaurant._id);
     await user.save();
 
-    // Initialize subscription for the restaurant
-    const subscription = {
+    const subscriptionRecord = {
         restaurantId: restaurant._id,
         startDate: new Date(),
         endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
         status: 'active',
-        plan: 'monthly',
+        plan: subscription.plan,
+        paymentMethod: subscription.paymentMethod,
     };
 
-    user.subscriptionRecords.push(subscription);
+    user.subscriptionRecords.push(subscriptionRecord);
     await user.save();
 
-    res.status(201).json({ message: 'Restaurant owner and restaurant created successfully', ownerId: user._id, restaurantId: restaurant._id });
+    res.status(201).json({
+        message: 'Restaurant owner and restaurant created successfully',
+        ownerId: user._id,
+        restaurantId: restaurant._id,
+    });
 });
 
 // Logout function
-// Logout function
 export const logoutUser = asyncHandler(async (req, res) => {
-    const userId = req.user?._id; // Assuming req.user is set by your JWT middleware
-
-    if (userId) {
-        await MasterUser.findByIdAndUpdate(userId, { refreshToken: null }); // Revoke the refresh token in DB
-    }
-
     res.clearCookie("accessToken", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: 'Strict' });
     res.clearCookie("refreshToken", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: 'Strict' });
     res.clearCookie("csrfToken", { httpOnly: false, secure: process.env.NODE_ENV === "production", sameSite: 'Strict' });
 
     return res.status(200).json({ message: "Logged out successfully" });
 });
-

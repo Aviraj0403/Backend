@@ -6,7 +6,17 @@ import crypto from 'crypto';
 
 // Helper function to extract the token from the request
 const extractToken = (req) => {
-    return req.cookies?.accessToken || req.headers["authorization"]?.replace("Bearer ", "");
+    console.log("Cookies:", req.cookies); 
+    console.log("Headers:", req.headers); // Log headers
+    const cookieToken = req.cookies?.accessToken; 
+    const headerToken = req.headers?.authorization ? req.headers.authorization.split(" ")[1] : null; 
+    const token = cookieToken || headerToken; 
+
+    if (!token) {
+        console.warn("No token found in cookies or headers."); // Warning if no token
+    }
+
+    return token;
 };
 
 // Helper function to retrieve user by ID
@@ -74,5 +84,3 @@ export const csrfProtectionMiddleware = (req, res, next) => {
 export const generateCsrfToken = () => {
     return crypto.randomBytes(32).toString('hex');
 };
-
-

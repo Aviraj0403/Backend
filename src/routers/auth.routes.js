@@ -5,7 +5,8 @@ import {
     registerRestaurantOwner,
     loginRestaurantOwner,
     checkSuperAdmin,
-    logoutUser
+    logoutUser,
+    refreshAccessToken
 } from '../controllers/auth.controller.js';
 import { verifyJWT, isSuperAdmin, csrfProtectionMiddleware } from '../middleware/auth.middleware.js';
 import rateLimit from 'express-rate-limit';
@@ -22,7 +23,7 @@ const loginLimiter = rateLimit({
 // Super Admin routes
 router.post('/superadmin/register', verifyJWT, isSuperAdmin, csrfProtectionMiddleware, registerSuperAdmin);
 router.post('/superadmin/login',  loginLimiter,loginSuperAdmin); // Login doesn't need JWT
-
+router.route("/refresh-token").post(refreshAccessToken)
 // Protected route to check if the user is a super admin
 router.get('/superadmin/check', verifyJWT, isSuperAdmin, checkSuperAdmin);
 
