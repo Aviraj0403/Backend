@@ -3,7 +3,7 @@ import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { MasterUser, ROLES } from '../models/masterUser.model.js'; // Ensure to import the user model
 
-// Controller to add a new food item
+// Controller to add a new food item (restricted to restaurant owners)
 export const addFoodItem = async (req, res, next) => {
     try {
         const { name, description, price, category, cookTime, itemType, isFeatured, isRecommended, status, imageUrl } = req.body;
@@ -18,7 +18,6 @@ export const addFoodItem = async (req, res, next) => {
 
         // Find the restaurant owned by the logged-in user
         const restaurantOwner = await MasterUser.findById(user._id).populate('restaurants');
-
         if (!restaurantOwner || !restaurantOwner.restaurants.length) {
             throw new ApiError(400, 'You must own a restaurant to add food items.');
         }
@@ -54,7 +53,7 @@ export const addFoodItem = async (req, res, next) => {
     }
 };
 
-// Controller to get all food items
+// Controller to get all food items (public access)
 export const getAllFoods = async (req, res, next) => {
     try {
         const foods = await Food.find().populate('restaurantId'); // Populate restaurant details
@@ -65,7 +64,7 @@ export const getAllFoods = async (req, res, next) => {
     }
 };
 
-// Controller to get a single food item by ID
+// Controller to get a single food item by ID (public access)
 export const getFoodById = async (req, res, next) => {
     try {
         const food = await Food.findById(req.params.id).populate('restaurantId'); // Populate restaurant details
@@ -80,7 +79,7 @@ export const getFoodById = async (req, res, next) => {
     }
 };
 
-// Controller to update a food item by ID
+// Controller to update a food item by ID (restricted to restaurant owners)
 export const updateFoodById = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -107,7 +106,7 @@ export const updateFoodById = async (req, res, next) => {
     }
 };
 
-// Controller to remove a food item
+// Controller to remove a food item (restricted to restaurant owners)
 export const removeFood = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -124,7 +123,7 @@ export const removeFood = async (req, res, next) => {
             throw new ApiError(403, 'You can only delete food items of your restaurant.');
         }
 
-        const result = await Food.findByIdAndDelete(id);
+        await Food.findByIdAndDelete(id);
         res.status(200).json(new ApiResponse(200, null, 'Food item removed successfully'));
     } catch (error) {
         console.error('Error removing food item:', error.message);
@@ -132,7 +131,7 @@ export const removeFood = async (req, res, next) => {
     }
 };
 
-// Controller to get food items by category and optionally by itemType
+// Controller to get food items by category and optionally by itemType (public access)
 export const getFoodsByCategory = async (req, res, next) => {
     try {
         const { category, itemType } = req.params;
