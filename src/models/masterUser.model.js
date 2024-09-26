@@ -38,6 +38,12 @@ const subscriptionSchema = new Schema({
         default: Date.now
     },
 }, { timestamps: true });
+ 
+subscriptionSchema.methods.updateDetails = function (updates) {
+    Object.assign(this, updates);
+    return this; // Return the updated subscription
+};
+
 
 const masterUserSchema = new Schema({
     username: {

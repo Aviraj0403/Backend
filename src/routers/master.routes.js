@@ -8,7 +8,7 @@ import {
 } from '../controllers/auth.controller.js';
 import { verifyJWT, isSuperAdmin, isRestaurantOwner } from '../middleware/auth.middleware.js';
 import { sendSubscriptionAlert, extendSubscription,getAllRestaurants,getRestaurantOwnerProfile,
-    getRestaurantById
+    getRestaurantById,updateRestaurantOwnerProfile,updateSubscriptionDetails
  } from '../controllers/restaurant.controller.js';
 
 const router = express.Router();
@@ -23,6 +23,11 @@ router.get('/restaurants', verifyJWT, isSuperAdmin,getAllRestaurants); // Option
 // Protected route for retrieving restaurant owner profile
 router.get('/profile/:ownerId', verifyJWT, isSuperAdmin, getRestaurantOwnerProfile);
 
+// Update Owner Profile
+router.put('/owners/:ownerId', updateRestaurantOwnerProfile);
+
+// Update Subscription Details
+router.put('/restaurants/:restaurantId/subscription', updateSubscriptionDetails);
 // Extend a restaurant's subscription
 router.put('/restaurants/:restaurantId/extend-subscription', verifyJWT, isRestaurantOwner, extendSubscription);
 

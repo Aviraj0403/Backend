@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { Restaurant } from '../models/restaurant.model.js';
-import { RestaurantOwner } from '../models/masterUser.model.js';
+import { RestaurantOwner,ROLES } from '../models/masterUser.model.js';
 import nodemailer from 'nodemailer';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
@@ -16,6 +16,16 @@ const transporter = nodemailer.createTransport({
     },
 });
 
+// Constants for HTTP status codes
+const HTTP_STATUS = {
+    OK: 200,
+    CREATED: 201,
+    BAD_REQUEST: 400,
+    UNAUTHORIZED: 401,
+    NOT_FOUND: 404,
+    INTERNAL_SERVER_ERROR: 500,
+};
+
 // Get all active restaurants owned by restaurant owners (excluding super admins)
 export const getAllRestaurants = asyncHandler(async (req, res) => {
     const { status, page = 1, limit = 10 } = req.query;
@@ -25,34 +35,24 @@ export const getAllRestaurants = asyncHandler(async (req, res) => {
     const limitNumber = parseInt(limit, 10);
 
     // Prepare query object for restaurants
-    const query = {};
+    const query = status ? { subscriptionRecords: { $elemMatch: { status } } } : {};
 
-    // If a subscription status is provided, add it to the query
-    if (status) {
-        query.subscriptionRecords = { $elemMatch: { status } };
-    }
-
-    // Fetch restaurants where owner is not a super admin
+    // Fetch restaurants excluding super admins
     const restaurants = await Restaurant.find(query)
         .populate({
             path: 'ownerId',
-            match: { role: { $ne: 'superAdmin' } }, // Exclude super admins
+            match: { role: { $ne: 'superAdmin' } },
             select: 'username email',
         })
         .skip((pageNumber - 1) * limitNumber)
-        .limit(limitNumber);
+        .limit(limitNumber)
+        .lean(); // Optimize for read operations
 
-    // Filter out any restaurants that were not associated with valid owners
     const filteredRestaurants = restaurants.filter(restaurant => restaurant.ownerId);
-
-    // Count total number of valid restaurants for pagination purposes
-    const totalRestaurants = await Restaurant.countDocuments({
-        ...query,
-        ownerId: { $ne: null }, // Ensuring there is an owner
-    });
+    const totalRestaurants = await Restaurant.countDocuments({ ...query, ownerId: { $ne: null } });
 
     if (filteredRestaurants.length === 0) {
-        return res.status(404).json({ message: 'No restaurants found' });
+        return res.status(HTTP_STATUS.NOT_FOUND).json({ message: 'No restaurants found' });
     }
 
     res.json({
@@ -67,14 +67,13 @@ export const getAllRestaurants = asyncHandler(async (req, res) => {
 export const sendSubscriptionAlert = asyncHandler(async (req, res) => {
     const { restaurantId } = req.params;
 
-    const restaurant = await Restaurant.findById(restaurantId).populate('ownerId', 'username email');
+    const restaurant = await Restaurant.findById(restaurantId).populate('ownerId', 'username email').lean();
 
     if (!restaurant) {
-        return res.status(404).json({ message: 'Restaurant not found' });
+        return res.status(HTTP_STATUS.NOT_FOUND).json({ message: 'Restaurant not found' });
     }
 
     const ownerEmail = restaurant.ownerId.email;
-
     const mailOptions = {
         from: process.env.EMAIL_USER,
         to: ownerEmail,
@@ -87,7 +86,7 @@ export const sendSubscriptionAlert = asyncHandler(async (req, res) => {
         res.json({ message: 'Subscription renewal reminder sent successfully' });
     } catch (error) {
         console.error('Error sending email:', error);
-        res.status(500).json({ message: 'Failed to send subscription reminder', error: error.message });
+        res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: 'Failed to send subscription reminder', error: error.message });
     }
 });
 
@@ -97,23 +96,22 @@ export const extendSubscription = asyncHandler(async (req, res) => {
     const { additionalMonths } = req.body;
 
     if (!additionalMonths || typeof additionalMonths !== 'number' || additionalMonths <= 0) {
-        throw new ApiError(400, 'Invalid input: additionalMonths must be a positive number');
+        throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Invalid input: additionalMonths must be a positive number');
     }
 
     const owner = await RestaurantOwner.findOne({ 'subscriptionRecords.restaurantId': restaurantId });
     if (!owner) {
-        throw new ApiError(404, 'Restaurant owner not found');
+        throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Restaurant owner not found');
     }
 
     const subscription = owner.subscriptionRecords.find(sub => sub.restaurantId.toString() === restaurantId);
     if (!subscription) {
-        throw new ApiError(404, 'Subscription not found');
+        throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Subscription not found');
     }
 
     // Extend subscription logic
     const newEndDate = new Date(subscription.endDate);
     newEndDate.setMonth(newEndDate.getMonth() + additionalMonths);
-
     subscription.endDate = newEndDate;
     await owner.save();
 
@@ -121,73 +119,149 @@ export const extendSubscription = asyncHandler(async (req, res) => {
 });
 
 // Retrieve Restaurant Owner Profile
- 
 export const getRestaurantOwnerProfile = asyncHandler(async (req, res) => {
     const { ownerId } = req.params;
-    console.log("Owner ID:", ownerId);
-    console.log("User from request:", req.user);
 
     // Ensure the user is authenticated
     if (!req.user) {
-        throw new ApiError(401, "User not authenticated");
+        throw new ApiError(HTTP_STATUS.UNAUTHORIZED, "User not authenticated");
     }
 
     // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(ownerId)) {
-        console.log("Invalid ObjectId format");
-        throw new ApiError(400, "Invalid owner ID format");
+        throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Invalid owner ID format");
     }
 
-    try {
-        // Fetch the owner with related restaurants and subscriptions
-        const ownerProfile = await RestaurantOwner.findById(ownerId)
-            .populate('restaurants', 'name location') // Include more restaurant fields if needed
-            .populate({
-                path: 'subscriptionRecords.restaurantId', // Path to restaurant in subscription records
-                model: 'Restaurant', // Ensure this matches your restaurant model name
-                select: 'name status location', // Specify fields to include
-            });
+    const ownerProfile = await RestaurantOwner.findById(ownerId)
+        .populate('restaurants', 'name location')
+        .populate({
+            path: 'subscriptionRecords.restaurantId',
+            model: 'Restaurant',
+            select: 'name'
+        })
+        .lean(); // Optimize for read operations
 
-        if (!ownerProfile) {
-            console.log("No owner profile found for ID:", ownerId);
-            throw new ApiError(404, "Restaurant owner not found");
+    if (!ownerProfile) {
+        throw new ApiError(HTTP_STATUS.NOT_FOUND, "Restaurant owner not found");
+    }
+
+    // Construct response data
+    const responseData = {
+        username: ownerProfile.username,
+        email: ownerProfile.email,
+        role: ownerProfile.role,
+        contactInfo: {
+            phone: ownerProfile.contactInfo?.phone || 'N/A',
+            email: ownerProfile.contactInfo?.email || 'N/A'
+        },
+        restaurants: ownerProfile.restaurants.map(restaurant => ({
+            _id: restaurant._id,
+            name: restaurant.name,
+            location: restaurant.location
+        })),
+        subscriptionRecords: ownerProfile.subscriptionRecords.map(record => ({
+            _id: record._id,
+            restaurantId: {
+                name: record.restaurantId?.name || 'N/A'
+            },
+            status: record.status,
+            plan: record.plan,
+            paymentStatus: record.paymentStatus,
+            endDate: record.endDate.toISOString().split('T')[0]
+        }))
+    };
+
+    res.status(HTTP_STATUS.OK).json(responseData);
+});
+
+// Get restaurant details by ID
+export const getRestaurantById = asyncHandler(async (req, res) => {
+    const { restaurantId } = req.params;
+
+    const restaurant = await Restaurant.findById(restaurantId)
+        .populate('ownerId', 'username')
+        .populate('managerId', 'username')
+        .populate('menuItems')
+        .lean(); // Optimize for read operations
+
+    if (!restaurant) {
+        return res.status(HTTP_STATUS.NOT_FOUND).json({ message: 'Restaurant not found' });
+    }
+
+    res.status(HTTP_STATUS.OK).json({ restaurant });
+});
+
+// Update Restaurant Owner Profile
+export const updateRestaurantOwnerProfile = asyncHandler(async (req, res) => {
+    const { ownerId } = req.params;
+    const { username, email, contactInfo } = req.body;
+
+    // Ensure the user is authenticated
+    if (!req.user) {
+        throw new ApiError(HTTP_STATUS.UNAUTHORIZED, "User not authenticated");
+    }
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(ownerId)) {
+        throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Invalid owner ID format");
+    }
+
+    const ownerProfile = await RestaurantOwner.findByIdAndUpdate(
+        ownerId,
+        { username, email, contactInfo },
+        { new: true, runValidators: true }
+    );
+
+    if (!ownerProfile) {
+        throw new ApiError(HTTP_STATUS.NOT_FOUND, "Restaurant owner not found");
+    }
+
+    res.status(HTTP_STATUS.OK).json({ message: 'Profile updated successfully', ownerProfile });
+});
+
+// Update Subscription Details
+; // Adjust the import based on your project structure
+
+export const updateSubscriptionDetails = asyncHandler(async (req, res) => {
+    const { restaurantId } = req.params; // Get restaurantId from URL parameters
+    const { paymentMethod, status, plan, paymentStatus } = req.body;
+
+    // Ensure user is authenticated and is a super admin
+    if (req.user.role !== ROLES.SUPER_ADMIN) {
+        return res.status(403).json({ message: 'Access denied. Admins only.' });
+    }
+
+    // Find the owner associated with the restaurantId in the subscription records
+    const owner = await RestaurantOwner.findOne({ 'subscriptionRecords.restaurantId': restaurantId });
+    
+    if (!owner) {
+        return res.status(404).json({ message: 'Restaurant owner not found' });
+    }
+
+    // Find the specific subscription by restaurantId
+    const subscription = owner.subscriptionRecords.find(sub => sub.restaurantId.toString() === restaurantId);
+    
+    if (!subscription) {
+        return res.status(404).json({ message: 'No subscription found for the given restaurant' });
+    }
+
+    // Update subscription details
+    subscription.paymentMethod = paymentMethod || subscription.paymentMethod; 
+    subscription.status = status || subscription.status; 
+    subscription.plan = plan || subscription.plan; 
+    subscription.paymentStatus = paymentStatus || subscription.paymentStatus;
+
+    // Save the updated owner document
+    await owner.save();
+
+    // Respond with the updated subscription, including the restaurant ID
+    res.status(200).json({
+        message: 'Subscription updated successfully',
+        subscription: {
+            ...subscription.toObject(), // Convert to plain object
+            restaurantId: subscription.restaurantId // Automatically include restaurant ID from subscription
         }
-
-        // Include all necessary fields from the MasterUser schema
-        const responseData = {
-            _id: ownerProfile._id,
-            username: ownerProfile.username,
-            email: ownerProfile.email,
-            restaurants: ownerProfile.restaurants,
-            subscriptionRecords: ownerProfile.subscriptionRecords,
-            createdAt: ownerProfile.createdAt,
-            updatedAt: ownerProfile.updatedAt,
-        };
-
-        res.status(200).json(responseData);
-    } catch (error) {
-        console.error("Error fetching owner profile:", error);
-        throw new ApiError(500, "An error occurred while fetching the owner profile: " + error.message);
-    }
+    });
 });
 
 
- // Adjust the path as necessary
-
-// Get restaurant details by ID
-export const getRestaurantById = async (req, res) => {
-    const { restaurantId } = req.params;
-    
-    try {
-        const restaurant = await Restaurant.findById(restaurantId).populate('ownerId', 'username').populate('managerId', 'username').populate('menuItems');
-        
-        if (!restaurant) {
-            return res.status(404).json({ message: 'Restaurant not found' });
-        }
-
-        res.status(200).json({ restaurant });
-    } catch (error) {
-        console.error("Error fetching restaurant:", error);
-        res.status(500).json({ message: 'Server error' });
-    }
-};
