@@ -7,14 +7,14 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import http from 'http';  // Import the HTTP module
 import { Server } from 'socket.io';  // Import Socket.IO
-import { ApiError } from './utils/ApiError.js';
+import { ApiError } from './src/utils/ApiError.js';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import authRoutes from './routers/auth.routes.js';
-import foodRoutes from './routers/food.routes.js'; 
-import uploadRoutes from './routers/upload.routes.js';
-import masterRoutes from './routers/master.routes.js';
-import { verifyJWT } from './middleware/auth.middleware.js';
+import authRoutes from './src/routers/auth.routes.js';
+import foodRoutes from './src/routers/food.routes.js'; 
+import uploadRoutes from './src/routers/upload.routes.js';
+import masterRoutes from './src/routers/master.routes.js';
+import { verifyJWT } from './src/middleware/auth.middleware.js';
 
 
 dotenv.config();
