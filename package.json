@@ -5,8 +5,8 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node ./server.js",
-    "dev": "npx node -r dotenv/config --experimental-json-modules ./server.js",
+    "start": "node server.js",
+    "dev": "npx node -r dotenv/config --experimental-json-modules server.js",
     "postinstall": "chmod +x node_modules/.bin/nodemon",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
