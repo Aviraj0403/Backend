@@ -2,11 +2,11 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "A backend server for handling REST API requests.",
-  "main": "src/server.js",
+  "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node ./src/server.js",
-    "dev": "nodemon -r dotenv/config --experimental-json-modules ./src/server.js",
+    "start": "node ./server.js",
+    "dev": "nodemon -r dotenv/config --experimental-json-modules ./server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
