@@ -1,14 +1,15 @@
 import Food from '../models/food.model.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
+import { Restaurant } from '../models/restaurant.model.js';
 import { MasterUser, ROLES } from '../models/masterUser.model.js'; // Ensure to import the user model
+;
 
-// Controller to add a new food item (restricted to restaurant owners)
 export const addFoodItem = async (req, res, next) => {
     try {
         const { name, description, price, category, cookTime, itemType, isFeatured, isRecommended, status, imageUrl } = req.body;
 
-        // Extract logged-in user information from `req.user` (after authentication middleware)
+        // Extract logged-in user information from `req.user` (assuming authentication middleware populates `req.user`)
         const user = req.user;
 
         // Check if the logged-in user is a restaurant owner
@@ -16,20 +17,20 @@ export const addFoodItem = async (req, res, next) => {
             throw new ApiError(403, 'You are not authorized to add food items.');
         }
 
-        // Find the restaurant owned by the logged-in user
-        const restaurantOwner = await MasterUser.findById(user._id).populate('restaurants');
+        // Find the restaurant ID owned by the logged-in user (using `lean()` for better performance)
+        const restaurantOwner = await MasterUser.findById(user._id).select('restaurants').lean();
         if (!restaurantOwner || !restaurantOwner.restaurants.length) {
             throw new ApiError(400, 'You must own a restaurant to add food items.');
         }
 
-        const restaurantId = restaurantOwner.restaurants[0]._id; // Use the first restaurant owned by the user
+        const restaurantId = restaurantOwner.restaurants[0]; // Use the first restaurant owned by the user
 
-        // Input validation
+        // Input validation (simple server-side validation)
         if (!name || !price || !category) {
             throw new ApiError(400, 'Name, price, and category are required fields.');
         }
 
-        // Create the new food item
+        // Create the new food item and update the restaurant concurrently
         const newFood = new Food({
             name,
             description,
@@ -44,8 +45,17 @@ export const addFoodItem = async (req, res, next) => {
             restaurantId, // Automatically assign the restaurantId from the logged-in user
         });
 
-        // Save the new food item to the database
-        const savedFood = await newFood.save();
+        // Perform both operations in parallel
+        const [savedFood] = await Promise.all([
+            newFood.save(), // Save the new food item
+            Restaurant.findByIdAndUpdate(
+                restaurantId,
+                { $push: { menuItems: newFood._id } }, // Push the new food item to the restaurant's menuItems
+                { new: true, lean: true } // Use lean() to reduce overhead
+            )
+        ]);
+
+        // Send success response
         res.status(201).json(new ApiResponse(201, savedFood, 'Food item added successfully'));
     } catch (error) {
         console.error('Error adding food item:', error.message);
@@ -53,16 +63,26 @@ export const addFoodItem = async (req, res, next) => {
     }
 };
 
+
 // Controller to get all food items (public access)
 export const getAllFoods = async (req, res, next) => {
     try {
-        const foods = await Food.find().populate('restaurantId'); // Populate restaurant details
-        res.status(200).json(new ApiResponse(200, foods, 'Food items fetched successfully'));
+      const { restaurantId } = req.query; 
+      // Expecting restaurantId from the query
+      console.log("res id" ,restaurantId)
+      // Fetch food items filtered by restaurantId
+      const foods = await Food.find({ restaurantId }).populate('restaurantId');
+  
+      if (!foods.length) {
+        return res.status(404).json({ message: 'No food items found for this restaurant' });
+      }
+  
+      res.status(200).json({ success: true, data: foods });
     } catch (error) {
-        console.error('Error fetching food list:', error.message);
-        next(new ApiError(500, 'Error fetching data', [error.message]));
+      next(error);
     }
-};
+  };
+
 
 // Controller to get a single food item by ID (public access)
 export const getFoodById = async (req, res, next) => {

@@ -27,7 +27,7 @@ router.get('/profile/:ownerId', verifyJWT, isSuperAdmin, getRestaurantOwnerProfi
 router.put('/owners/:ownerId', updateRestaurantOwnerProfile);
 
 // Update Subscription Details
-router.put('/restaurants/:restaurantId/subscription', updateSubscriptionDetails);
+router.put('/restaurants/:restaurantId/subscription', verifyJWT, isSuperAdmin,updateSubscriptionDetails);
 // Extend a restaurant's subscription
 router.put('/restaurants/:restaurantId/extend-subscription', verifyJWT, isRestaurantOwner, extendSubscription);
 

@@ -56,7 +56,7 @@ const generateCsrfToken = () => {
 // });
 
 // Handle token generation and cookie setting
-const setTokensAndCookies = async (res, user) => {
+const setTokensAndCookies = async (res, user,restaurantId) => {
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken(); // Generate the refresh token
     user.refreshToken = refreshToken;
@@ -91,7 +91,7 @@ const setTokensAndCookies = async (res, user) => {
         .status(200)
         .json({ 
             message: "Login successful", 
-            user: { id: user._id, username: user.username }, 
+            user: { id: user._id, username: user.username, restaurantId }, 
             csrfToken, 
             accessToken, 
             refreshToken // Correctly send the refreshToken
@@ -152,8 +152,16 @@ export const loginRestaurantOwner = asyncHandler(async (req, res) => {
     if (!user || !(await user.isPasswordCorrect(password))) {
         throw new ApiError(401, "Invalid credentials");
     }
+      
 
-    setTokensAndCookies(res, user);
+    // Fetch the associated restaurant
+    const restaurant = await Restaurant.findOne({ ownerId: user._id });
+    if (!restaurant) {
+        throw new ApiError(404, "Restaurant not found");
+    }
+
+    setTokensAndCookies(res, user, restaurant._id); // Pass restaurantId here
+    // setTokensAndCookies(res, user);
 });
 
 // Register a new Restaurant Owner (only for Super Admin)
