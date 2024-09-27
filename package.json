@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node ./server.js",
-    "dev": "node -r dotenv/config --experimental-json-modules ./server.js",
+    "dev": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
