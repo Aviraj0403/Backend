@@ -47,7 +47,10 @@ const corsOptions = {
   credentials: true // Allow credentials (cookies, etc.)
 };
 
-
+app.get('/check',(req,res)=>
+{
+  res.send("Server Check");
+})
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(express.json());
