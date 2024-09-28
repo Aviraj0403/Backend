@@ -78,7 +78,7 @@ app.use((err, req, res, next) => {
 
 // 404 handler
 app.use((req, res) => {
-  res.status(404).json({ message: 'Not Found' });
+  res.status(404).json({ message: 'Not Found get it' });
 });
 
 // Socket.IO setup
