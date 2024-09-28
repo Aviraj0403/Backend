@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 dotenv.config();
 import connectDB from './src/config/databaseConfig.js';
-import app from './App.js'; // Import the Express app
+import app from './src/App.js'; // Import the Express app
 
 // Load environment variables from .env file
 
