@@ -2,35 +2,32 @@ import Food from '../models/food.model.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { Restaurant } from '../models/restaurant.model.js';
-import { MasterUser, ROLES } from '../models/masterUser.model.js'; // Ensure to import the user model
-;
+import { MasterUser, ROLES } from '../models/masterUser.model.js'; 
+import mongoose from 'mongoose';
 
+// Controller to add a food item (restricted to restaurant owners)
 export const addFoodItem = async (req, res, next) => {
     try {
-        const { name, description, price, category, cookTime, itemType, isFeatured, isRecommended, status, imageUrl } = req.body;
+        const { name, description, price, category, cookTime, itemType, variety, isFeatured, isRecommended, status, imageUrl } = req.body;
 
-        // Extract logged-in user information from `req.user` (assuming authentication middleware populates `req.user`)
         const user = req.user;
 
-        // Check if the logged-in user is a restaurant owner
         if (!user || user.role !== ROLES.RESTAURANT_OWNER) {
             throw new ApiError(403, 'You are not authorized to add food items.');
         }
 
-        // Find the restaurant ID owned by the logged-in user (using `lean()` for better performance)
         const restaurantOwner = await MasterUser.findById(user._id).select('restaurants').lean();
         if (!restaurantOwner || !restaurantOwner.restaurants.length) {
             throw new ApiError(400, 'You must own a restaurant to add food items.');
         }
 
-        const restaurantId = restaurantOwner.restaurants[0]; // Use the first restaurant owned by the user
+        const restaurantId = restaurantOwner.restaurants[0];
 
-        // Input validation (simple server-side validation)
-        if (!name || !price || !category) {
-            throw new ApiError(400, 'Name, price, and category are required fields.');
+        // Input validation
+        if (!name || !price || !category || !variety) {
+            throw new ApiError(400, 'Name, price, category, and variety are required fields.');
         }
 
-        // Create the new food item and update the restaurant concurrently
         const newFood = new Food({
             name,
             description,
@@ -38,24 +35,23 @@ export const addFoodItem = async (req, res, next) => {
             category,
             cookTime,
             itemType,
+            variety, // Include the variety field
             isFeatured,
             isRecommended,
             status,
             imageUrl,
-            restaurantId, // Automatically assign the restaurantId from the logged-in user
+            restaurantId,
         });
 
-        // Perform both operations in parallel
         const [savedFood] = await Promise.all([
-            newFood.save(), // Save the new food item
+            newFood.save(),
             Restaurant.findByIdAndUpdate(
                 restaurantId,
-                { $push: { menuItems: newFood._id } }, // Push the new food item to the restaurant's menuItems
-                { new: true, lean: true } // Use lean() to reduce overhead
+                { $push: { menuItems: newFood._id } },
+                { new: true, lean: true }
             )
         ]);
 
-        // Send success response
         res.status(201).json(new ApiResponse(201, savedFood, 'Food item added successfully'));
     } catch (error) {
         console.error('Error adding food item:', error.message);
@@ -63,31 +59,77 @@ export const addFoodItem = async (req, res, next) => {
     }
 };
 
-
 // Controller to get all food items (public access)
+
 export const getAllFoods = async (req, res, next) => {
     try {
-      const { restaurantId } = req.query; 
-      // Expecting restaurantId from the query
-      console.log("res id" ,restaurantId)
-      // Fetch food items filtered by restaurantId
-      const foods = await Food.find({ restaurantId }).populate('restaurantId');
-  
-      if (!foods.length) {
-        return res.status(404).json({ message: 'No food items found for this restaurant' });
-      }
-  
-      res.status(200).json({ success: true, data: foods });
+        const { restaurantId } = req.params;
+        console.log("Restaurant ID:", restaurantId);
+
+        // Validate the restaurantId format
+        if (!mongoose.Types.ObjectId.isValid(restaurantId)) {
+            return res.status(400).json({ message: 'Invalid restaurant ID format' });
+        }
+
+        const foods = await Food.aggregate([
+            {
+                $match: {
+                    restaurantId: new mongoose.Types.ObjectId(restaurantId) // Use index for matching
+                }
+            },
+            {
+                $lookup: {
+                    from: 'restaurants', // The collection name for restaurants
+                    localField: 'restaurantId',
+                    foreignField: '_id',
+                    as: 'restaurantDetails'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$restaurantDetails',
+                    preserveNullAndEmptyArrays: true // Optional
+                }
+            },
+            {
+                $project: {
+                    name: 1,
+                    description: 1,
+                    price: 1,
+                    category: 1,
+                    cookTime: 1,
+                    itemType: 1,
+                    variety: 1,
+                    isFeatured: 1,
+                    isRecommended: 1,
+                    status: 1,
+                    imageUrl: 1,
+                    // restaurant: {
+                    //     name: '$restaurantDetails.name',
+                    //     location: '$restaurantDetails.location'
+                    // }
+                }
+            },
+            {
+                $sort: { createdAt: -1 } // Optional: Sort by creation date
+            }
+        ]);
+
+        if (!foods.length) {
+            return res.status(404).json({ message: 'No food items found for this restaurant' });
+        }
+
+        res.status(200).json({ success: true, data: foods });
     } catch (error) {
-      next(error);
+        next(error);
     }
-  };
+};
 
 
 // Controller to get a single food item by ID (public access)
 export const getFoodById = async (req, res, next) => {
     try {
-        const food = await Food.findById(req.params.id).populate('restaurantId'); // Populate restaurant details
+        const food = await Food.findById(req.params.id).populate('restaurantId');
         if (food) {
             res.status(200).json(new ApiResponse(200, food, 'Food item fetched successfully'));
         } else {
@@ -103,12 +145,14 @@ export const getFoodById = async (req, res, next) => {
 export const updateFoodById = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const updates = req.body; // Capture all updates
+        const updates = req.body;
 
         const user = req.user;
-
-        // Check if the logged-in user is authorized to update the food item (restaurant owner)
-        if (!user || user.role !== ROLES.RESTAURANT_OWNER) {
+        console.log('User:', user);
+        // console.log('Food Item:', food);
+        
+        // Check if user is set
+        if (!user || !user.restaurants || user.restaurants.length === 0) {
             throw new ApiError(403, 'You are not authorized to update this food item.');
         }
 
@@ -126,30 +170,44 @@ export const updateFoodById = async (req, res, next) => {
     }
 };
 
+
 // Controller to remove a food item (restricted to restaurant owners)
+
 export const removeFood = async (req, res, next) => {
     try {
-        const { id } = req.params;
+        const { id, restaurantId } = req.params;
+        console.log("Restaurant ID: during remove", restaurantId);
+        console.log("Food ID: during remove", id);
 
-        const user = req.user;
-
-        // Check if the logged-in user is authorized to delete the food item (restaurant owner)
-        if (!user || user.role !== ROLES.RESTAURANT_OWNER) {
-            throw new ApiError(403, 'You are not authorized to delete this food item.');
+        // Validate the IDs
+        if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(restaurantId)) {
+            return res.status(400).json({ message: 'Invalid ID format' });
         }
 
-        const food = await Food.findById(id).populate('restaurantId');
-        if (!food || !food.restaurantId.equals(user.restaurants[0]._id)) {
-            throw new ApiError(403, 'You can only delete food items of your restaurant.');
+        // Check if the food item belongs to the specific restaurant
+        const food = await Food.findOne({ _id: id, restaurantId: restaurantId });
+        if (!food) {
+            return res.status(404).json({ message: 'Food item not found for this restaurant' });
         }
 
+        // Remove the food item from the Food collection
         await Food.findByIdAndDelete(id);
-        res.status(200).json(new ApiResponse(200, null, 'Food item removed successfully'));
+
+        // Remove the food item's ID from the restaurant's menuItems array
+        await Restaurant.findByIdAndUpdate(
+            restaurantId,
+            { $pull: { menuItems: id } },
+            { new: true }
+        );
+
+        res.status(200).json({ success: true, message: 'Food item removed successfully' });
     } catch (error) {
         console.error('Error removing food item:', error.message);
         next(new ApiError(500, 'Error removing item', [error.message]));
     }
 };
+
+
 
 // Controller to get food items by category and optionally by itemType (public access)
 export const getFoodsByCategory = async (req, res, next) => {
@@ -164,10 +222,28 @@ export const getFoodsByCategory = async (req, res, next) => {
             query.itemType = itemType;
         }
 
-        const foods = await Food.find(query).populate('restaurantId'); // Filtered query with population of restaurant
+        const foods = await Food.find(query).populate('restaurantId');
         res.status(200).json(new ApiResponse(200, foods, 'Food items fetched successfully'));
     } catch (error) {
         console.error('Error fetching food items:', error.message);
+        next(new ApiError(500, 'Error fetching data', [error.message]));
+    }
+};
+
+// Additional controller to get food items by variety (public access)
+export const getFoodsByVariety = async (req, res, next) => {
+    try {
+        const { variety } = req.params;
+
+        const query = {};
+        if (variety && variety !== 'All') {
+            query.variety = variety;
+        }
+
+        const foods = await Food.find(query).populate('restaurantId');
+        res.status(200).json(new ApiResponse(200, foods, 'Food items fetched successfully'));
+    } catch (error) {
+        console.error('Error fetching food items by variety:', error.message);
         next(new ApiError(500, 'Error fetching data', [error.message]));
     }
 };

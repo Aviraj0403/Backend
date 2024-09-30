@@ -1,4 +1,3 @@
-// backend/models/foodModel.js
 import mongoose from "mongoose";
 
 // Define the schema for food items
@@ -30,8 +29,9 @@ const foodSchema = new mongoose.Schema(
         "Pure Veg",
         "Pasta",
         "Noodles",
-        "Veg","Non-Veg",
-        "Dinner"
+        "Veg",
+        "Non-Veg",
+        "Dinner",
       ], // Restrict to predefined categories
     },
     cookTime: {
@@ -43,11 +43,16 @@ const foodSchema = new mongoose.Schema(
       required: true,
       enum: ["Veg", "Non-Veg"], // Only allow Veg or Non-Veg
     },
+    variety: {
+      type: String,
+      required: true,
+      enum: ["Breakfast", "Lunch", "Dinner"], // New field for meal variety
+    },
     isFeatured: {
       type: Boolean,
       default: false,
     },
-    isRecommended: { // New field to indicate if the food item is recommended
+    isRecommended: {
       type: Boolean,
       default: false,
     },
@@ -61,7 +66,7 @@ const foodSchema = new mongoose.Schema(
       type: String,
       required: true, // Cloudinary image URL is required
     },
-    restaurantId: { // Add this line to reference the restaurant
+    restaurantId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Restaurant', // Reference to the Restaurant model
       required: true, // Make it required to ensure every food item has an associated restaurant
@@ -71,6 +76,9 @@ const foodSchema = new mongoose.Schema(
     timestamps: true, // Automatically adds createdAt and updatedAt fields
   }
 );
+
+// Add index to restaurantId for optimization
+foodSchema.index({ restaurantId: 1 });
 
 // Create the model from the schema
 const Food = mongoose.model("Food", foodSchema);

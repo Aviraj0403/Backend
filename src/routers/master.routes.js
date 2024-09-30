@@ -14,7 +14,7 @@ import { sendSubscriptionAlert, extendSubscription,getAllRestaurants,getRestaura
 const router = express.Router();
 
 // Register a new restaurant owner (only for super admin)
-router.post('/register', verifyJWT, isSuperAdmin, registerRestaurantOwner);
+// router.post('/register', verifyJWT, isSuperAdmin, registerRestaurantOwner);
 
 // Get all restaurants (accessible by super admin and restaurant owners)
 router.get('/restaurants', verifyJWT, isSuperAdmin,getAllRestaurants); // Optionally, add isRestaurantOwner if needed
