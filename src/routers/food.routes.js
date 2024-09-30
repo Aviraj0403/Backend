@@ -19,7 +19,7 @@ router.post('/add', verifyJWT, isRestaurantOwner, addFoodItem);
 router.get('/:restaurantId/list-food', getAllFoods);
 
 // Remove a food item
-router.delete('/:restaurantId/:id',  removeFood);
+router.delete('/:restaurantId/:id', verifyJWT, isRestaurantOwner, removeFood);
 
 // Get a single food item by ID
 router.get('/:restaurantId/:id', getFoodById);

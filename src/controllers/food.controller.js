@@ -144,31 +144,33 @@ export const getFoodById = async (req, res, next) => {
 // Controller to update a food item by ID (restricted to restaurant owners)
 export const updateFoodById = async (req, res, next) => {
     try {
-        const { id } = req.params;
+        const { id, restaurantId } = req.params;
         const updates = req.body;
 
-        const user = req.user;
-        console.log('User:', user);
-        // console.log('Food Item:', food);
-        
-        // Check if user is set
-        if (!user || !user.restaurants || user.restaurants.length === 0) {
-            throw new ApiError(403, 'You are not authorized to update this food item.');
+        console.log("Restaurant ID: during update", restaurantId);
+        console.log("Food ID: during update", id);
+
+        // Validate the IDs
+        if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(restaurantId)) {
+            return res.status(400).json({ message: 'Invalid ID format' });
         }
 
-        const food = await Food.findById(id).populate('restaurantId');
-        if (!food || !food.restaurantId.equals(user.restaurants[0]._id)) {
-            throw new ApiError(403, 'You can only update food items of your restaurant.');
+        // Check if the food item belongs to the specific restaurant
+        const food = await Food.findOne({ _id: id, restaurantId: restaurantId });
+        if (!food) {
+            return res.status(404).json({ message: 'Food item not found for this restaurant' });
         }
 
         // Update food details
         const updatedFood = await Food.findByIdAndUpdate(id, updates, { new: true }).populate('restaurantId');
+
         res.status(200).json(new ApiResponse(200, updatedFood, 'Food item updated successfully'));
     } catch (error) {
         console.error('Error updating food item:', error.message);
         next(new ApiError(500, 'Error updating item', [error.message]));
     }
 };
+
 
 
 // Controller to remove a food item (restricted to restaurant owners)
