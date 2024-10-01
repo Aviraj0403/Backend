@@ -11,7 +11,7 @@ export const addFoodItem = async (req, res, next) => {
         const { name, description, price, category, cookTime, itemType, variety, isFeatured, isRecommended, status, imageUrl } = req.body;
 
         const user = req.user;
-
+     
         if (!user || user.role !== ROLES.RESTAURANT_OWNER) {
             throw new ApiError(403, 'You are not authorized to add food items.');
         }
