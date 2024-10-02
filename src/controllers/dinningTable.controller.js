@@ -1,6 +1,8 @@
 import { DiningTable } from '../models/dinningTable.model.js';
 import { ApiError } from '../utils/ApiError.js';
 import { MasterUser, ROLES } from '../models/masterUser.model.js';
+import mongoose from 'mongoose';
+
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { v4 as uuidv4 } from 'uuid';
 // Create a new dining table
@@ -50,6 +52,7 @@ export const createDiningTable = async (req, res, next) => {
 
 
 // Get all dining tables
+// Get all dining tables based on status
 export const getDiningTables = async (req, res, next) => {
     try {
         const user = req.user;
@@ -66,13 +69,17 @@ export const getDiningTables = async (req, res, next) => {
 
         const restaurantId = restaurantOwner.restaurants[0]; // Assuming one restaurant per owner
 
-        const tables = await DiningTable.find({ restaurantId }).populate('restaurantId');
+        // Get status from query parameter, defaulting to both if not specified
+        const statusFilter = req.query.status ? { status: req.query.status } : {};
+
+        const tables = await DiningTable.find({ restaurantId, ...statusFilter }).populate('restaurantId');
         res.status(200).json(new ApiResponse(200, tables, 'Dining tables retrieved successfully.'));
     } catch (error) {
         console.error('Error fetching dining tables:', error.message);
         next(new ApiError(500, 'Error fetching dining tables', [error.message]));
     }
 };
+
 
 // Get a dining table by ID
 // Get a dining table by ID
@@ -147,5 +154,61 @@ export const deleteDiningTable = async (req, res, next) => {
     } catch (error) {
         console.error('Error deleting dining table:', error.message);
         next(new ApiError(500, 'Error deleting dining table', [error.message]));
+    }
+};
+// Get all active dining tables for a specific restaurant
+
+export const getActiveDiningTables = async (req, res, next) => {
+    try {
+        const { restaurantId } = req.params;
+        console.log('Restaurant ID received:', restaurantId);
+
+        // Validate restaurantId
+        if (!mongoose.Types.ObjectId.isValid(restaurantId)) {
+            return res.status(400).json({ statusCode: 400, message: 'Invalid restaurant ID' });
+        }
+
+        // Using aggregation pipeline to get active dining tables
+        const activeTables = await DiningTable.aggregate([
+            {
+                $match: {
+                    restaurantId: new mongoose.Types.ObjectId(restaurantId), // Use `new` here
+                    status: 'Active'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'restaurants', // The collection name for restaurants
+                    localField: 'restaurantId',
+                    foreignField: '_id',
+                    as: 'restaurantInfo'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$restaurantInfo',
+                    preserveNullAndEmptyArrays: true // If you want to keep tables even if no restaurant info
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    name: 1,
+                    size: 1,
+                    tableId: 1,
+                }
+            }
+        ]);
+
+        console.log('Active Tables:', activeTables);
+
+        if (!activeTables || activeTables.length === 0) {
+            return res.status(404).json({ statusCode: 404, data: [], message: 'No active dining tables found.' });
+        }
+
+        return res.status(200).json({ statusCode: 200, data: activeTables, message: 'Active dining tables retrieved successfully.' });
+    } catch (error) {
+        console.error('Error fetching active dining tables:', error.message);
+        next(error);
     }
 };
