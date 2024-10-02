@@ -15,7 +15,9 @@ import foodRoutes from './routers/food.routes.js';
 import uploadRoutes from './routers/upload.routes.js';
 import masterRoutes from './routers/master.routes.js';
 import tableRoutes from './routers/dinningTable.routes.js'; // Import the database connection function
-import offerRoutes from './routers/offer.routes.js'
+import offerRoutes from './routers/offer.routes.js';
+import scanRoutes from './routers/scan.routes.js';
+import orderRoutes from './routers/order.routes.js'
 import { verifyJWT } from './middleware/auth.middleware.js';
 
 
@@ -59,11 +61,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.use('/api/auth', authRoutes); // Auth routes don't require JWT
+app.use('/api/auth', authRoutes); 
+// Auth routes don't require JWT
+app.use('/api/scan', scanRoutes);
 app.use('/api/food', foodRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/offer', offerRoutes);
 app.use('/api/table', tableRoutes);
+app.use('/api/orders', orderRoutes);
+
 app.use('/api/users', verifyJWT, masterRoutes);
 
 // Error handling middleware

@@ -1,5 +1,6 @@
 import { Offer } from '../models/offer.model.js';
  // Adjust the import path as necessary
+import mongoose from 'mongoose'; // Ensure mongoose is imported
 import { ApiError } from '../utils/ApiError.js';
 import { Restaurant } from '../models/restaurant.model.js';
 import { MasterUser, ROLES } from '../models/masterUser.model.js'; 
@@ -130,7 +131,6 @@ export const updateOffer = async (req, res, next) => {
     }
 };
 // Delete Offer
-import mongoose from 'mongoose'; // Ensure mongoose is imported
 
 export const deleteOffer = async (req, res, next) => {
     try {
@@ -164,5 +164,51 @@ export const deleteOffer = async (req, res, next) => {
     } catch (error) {
         console.error('Error deleting offer:', error.message);
         next(new ApiError(500, 'Error deleting offer', [error.message]));
+    }
+};
+export const getActiveOffers = async (req, res, next) => {
+    try {
+        const { restaurantId } = req.params;
+        console.log('Restaurant ID received:', restaurantId);
+
+        // Validate restaurantId
+        if (!mongoose.Types.ObjectId.isValid(restaurantId)) {
+            return res.status(400).json({ statusCode: 400, message: 'Invalid restaurant ID' });
+        }
+
+        // Get the current date for filtering active offers
+        const currentDate = new Date();
+
+        // Fetch active offers using aggregation pipeline
+        const activeOffers = await Offer.aggregate([
+            {
+                $match: {
+                    restaurantId: new mongoose.Types.ObjectId(restaurantId),
+                    status: 'Active',
+                    startDate: { $lte: currentDate }, // Ensure the offer has started
+                    endDate: { $gte: currentDate }    // Ensure the offer has not ended
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    name: 1,
+                    discountPercentage: 1,
+                    startDate: 1,
+                    endDate: 1,
+                }
+            }
+        ]);
+
+        console.log('Active Offers:', activeOffers);
+
+        if (!activeOffers || activeOffers.length === 0) {
+            return res.status(404).json({ statusCode: 404, data: [], message: 'No active offers found.' });
+        }
+
+        return res.status(200).json({ statusCode: 200, data: activeOffers, message: 'Active offers retrieved successfully.' });
+    } catch (error) {
+        console.error('Error fetching active offers:', error.message);
+        next(error);
     }
 };
