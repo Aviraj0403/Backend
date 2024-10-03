@@ -20,7 +20,7 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5 MB
   fileFilter: (req, file, cb) => {
     // Allowed file types (example: jpg, jpeg, png, gif)
-    const fileTypes = /jpeg|jpg|png|gif/;
+    const fileTypes = /jpeg|jpg|png|gif|avif/;
     const extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = fileTypes.test(file.mimetype);
 

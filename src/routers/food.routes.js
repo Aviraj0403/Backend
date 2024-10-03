@@ -9,6 +9,7 @@ import {
     getFoodsByVariety // Import the new controller function
 } from '../controllers/food.controller.js';  // Adjust path as necessary
 import { verifyJWT, isRestaurantOwner, csrfProtectionMiddleware } from '../middleware/auth.middleware.js';
+import { createOrder } from '../controllers/order.controller.js';
 
 const router = express.Router();
 
@@ -17,6 +18,8 @@ router.post('/add', verifyJWT, isRestaurantOwner, addFoodItem);
 
 // Get all food items
 router.get('/:restaurantId/list-food', getAllFoods);
+
+router.get('/order/:id', createOrder);
 
 // Remove a food item
 router.delete('/:restaurantId/:id', verifyJWT, isRestaurantOwner, removeFood);
