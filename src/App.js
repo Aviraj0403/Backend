@@ -19,7 +19,8 @@ import offerRoutes from './routers/offer.routes.js';
 import scanRoutes from './routers/scan.routes.js';
 import orderRoutes from './routers/order.routes.js'
 import { verifyJWT } from './middleware/auth.middleware.js';
-
+import { setupSocketIO } from './socket.js'; 
+import HTTP from 'http';
 
 dotenv.config();
 
@@ -94,21 +95,6 @@ app.use((req, res) => {
   res.status(404).json({ message: 'Not Found get it' });
 });
 
-// Socket.IO setup
-const setupSocketIO = (io) => {
-  io.on('connection', (socket) => {
-    console.log('A user connected');
-
-    socket.on('message', (msg) => {
-      console.log('message: ' + msg);
-      socket.broadcast.emit('message', msg);
-    });
-
-    socket.on('disconnect', () => {
-      console.log('User disconnected');
-    });
-  });
-};
 
 setupSocketIO(io);
 
