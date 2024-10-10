@@ -213,3 +213,64 @@ export const getOrdersByTable = async (req, res) => {
         return res.status(500).json({ message: 'Error fetching orders', error });
     }
 };
+export const getOrdersByDate = async (req, res) => {
+  const { startDate, endDate, restaurantId } = req.query;
+
+  // Validate the dates
+  if (!startDate || !endDate) {
+    return res.status(400).json({ message: 'Both startDate and endDate are required.' });
+  }
+
+  try {
+    const orders = await Order.aggregate([
+      {
+        $match: {
+          createdAt: {
+            $gte: new Date(startDate),
+            $lt: new Date(endDate),
+          },
+          ...(restaurantId ? { restaurantId: mongoose.Types.ObjectId(restaurantId) } : {}),
+        },
+      },
+      {
+        $lookup: {
+          from: 'foods',
+          localField: 'items.foodId',
+          foreignField: '_id',
+          as: 'foodDetails',
+        },
+      },
+      {
+        $lookup: {
+          from: 'offers',
+          localField: 'offerId',
+          foreignField: '_id',
+          as: 'offerDetails',
+        },
+      },
+      {
+        $project: {
+          customerName: 1,
+          phone: 1,
+          diningTableId: 1,
+          items: 1,
+          paymentId: 1,
+          status: 1,
+          totalPrice: 1,
+          foodDetails: {
+            $arrayElemAt: ['$foodDetails', 0], // If you need the first matching food
+          },
+          offerDetails: {
+            $arrayElemAt: ['$offerDetails', 0], // If you need the first matching offer
+          },
+          createdAt: 1, // Include createdAt for additional context
+        },
+      },
+    ]);
+
+    return res.status(200).json(orders);
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    return res.status(500).json({ message: 'Server error', error });
+  }
+};

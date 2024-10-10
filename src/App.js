@@ -18,6 +18,8 @@ import tableRoutes from './routers/dinningTable.routes.js'; // Import the databa
 import offerRoutes from './routers/offer.routes.js';
 import scanRoutes from './routers/scan.routes.js';
 import orderRoutes from './routers/order.routes.js'
+import employeeRoutes from './routers/employee.routes.js';
+import attendanceRoutes from './routers/attendance.routes.js'
 import { verifyJWT } from './middleware/auth.middleware.js';
 import { setupSocketIO } from './socket.js'; 
 import HTTP from 'http';
@@ -70,6 +72,9 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/offer', offerRoutes);
 app.use('/api/table', tableRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/employees', employeeRoutes);
+app.use('/api/attendance', attendanceRoutes);
+
 
 app.use('/api/users', verifyJWT, masterRoutes);
 
