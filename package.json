@@ -5,10 +5,13 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
+    "start": "nodemon -r dotenv/config --experimental-json-modules server.js",
     "dev": "npx node -r dotenv/config --experimental-json-modules server.js",
+    "prod": "node server.js",
     "postinstall": "chmod +x node_modules/.bin/nodemon",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint .",
+    "build": "babel src -d dist"
   },
   "dependencies": {
     "axios": "^1.7.7",
@@ -41,6 +44,8 @@
   "private": true,
   "devDependencies": {
     "cross-env": "^7.0.3",
-    "nodemon": "^3.1.7"
+    "nodemon": "^3.1.7",
+    "eslint": "^8.35.0",  
+    "babel": "^6.23.0"    
   }
 }
