@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 dotenv.config();
 import connectDB from './src/config/databaseConfig.js';
-import { app, server } from './src/App.js'; // Import the Express app
+import app from './src/App.js'; // Import the Express app
 
 // Load environment variables from .env file
 
@@ -13,10 +13,6 @@ console.log('Cloudinary Config:', {
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
-app.get('/check',(req,res)=>
-  {
-    res.send("Server Check");
-  })
 // Connect to the database
 connectDB()
   .then(() => {

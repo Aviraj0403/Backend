@@ -103,4 +103,4 @@ app.use((req, res) => {
 
 setupSocketIO(io);
 
-export { app, server };
+export default server;
