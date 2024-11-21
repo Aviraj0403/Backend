@@ -28,12 +28,17 @@ const offerSchema = new mongoose.Schema({
         type: Date,
         required: true,
         validate: {
-            validator: function (value) {
-                return value instanceof Date && !isNaN(value) && value > this.startDate;
+            validator: function (v) {
+                // If 'startDate' is a valid Date object, compare it
+                if (this.startDate instanceof Date && !isNaN(this.startDate.getTime())) {
+                    return v > this.startDate; // Ensure endDate is after startDate
+                }
+                return true; // Allow validation to pass if startDate is not present
             },
-            message: 'End date must be later than start date.',
-        },
+            message: 'End date must be later than start date.'
+        }
     },
+    
     restaurantId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Restaurant',

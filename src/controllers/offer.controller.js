@@ -99,9 +99,9 @@ export const updateOffer = async (req, res, next) => {
         const user = req.user;
 
         // Check if the user is authorized as a restaurant owner
-        if (!user || user.role !== 'RESTAURANT_OWNER') {
-            throw new ApiError(403, 'You are not authorized to update offers.');
-        }
+        // if (!user || user.role !== 'RESTAURANT_OWNER') {
+        //     throw new ApiError(403, 'You are not authorized to update offers.');
+        // }
 
         // Retrieve the restaurant owned by the user
         const restaurantOwner = await MasterUser.findById(user._id).select('restaurants').lean();
@@ -210,5 +210,35 @@ export const getActiveOffers = async (req, res, next) => {
     } catch (error) {
         console.error('Error fetching active offers:', error.message);
         next(error);
+    }
+};
+export const getOfferById = async (req, res, next) => {
+    try {
+        const { offerId, restaurantId } = req.params;
+        const user = req.user;
+
+        // Check if the user is authorized as a restaurant owner
+        if (!user || user.role !== ROLES.RESTAURANT_OWNER) {
+            throw new ApiError(403, 'You are not authorized to view offers.');
+        }
+
+        // Retrieve the restaurant owned by the user
+        const restaurantOwner = await MasterUser.findById(user._id).select('restaurants').lean();
+        if (!restaurantOwner || !restaurantOwner.restaurants.length) {
+            throw new ApiError(400, 'You must own a restaurant to view offers.');
+        }
+
+        const restaurantIdFromOwner = restaurantOwner.restaurants[0];
+
+        // Find the offer by ID and ensure it belongs to the user's restaurant
+        const offer = await Offer.findOne({ _id: offerId, restaurantId: restaurantIdFromOwner }).lean();
+        if (!offer) {
+            throw new ApiError(404, 'Offer not found or you do not have permission to view it.');
+        }
+
+        res.status(200).json(new ApiResponse(200, offer, 'Offer retrieved successfully.'));
+    } catch (error) {
+        console.error('Error fetching offer by ID:', error.message);
+        next(new ApiError(500, 'Error fetching offer by ID', [error.message]));
     }
 };
