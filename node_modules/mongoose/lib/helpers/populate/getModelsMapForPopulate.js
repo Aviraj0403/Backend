@@ -478,10 +478,9 @@ function addModelNamesToMap(model, map, available, modelNames, options, data, re
     return;
   }
 
-  const flatModelNames = utils.array.flatten(modelNames);
-  let k = flatModelNames.length;
+  let k = modelNames.length;
   while (k--) {
-    let modelName = flatModelNames[k];
+    let modelName = modelNames[k];
     if (modelName == null) {
       continue;
     }
@@ -504,10 +503,11 @@ function addModelNamesToMap(model, map, available, modelNames, options, data, re
     }
 
     let ids = ret;
+    const flat = Array.isArray(ret) ? utils.array.flatten(ret) : [];
 
     const modelNamesForRefPath = data.modelNamesInOrder ? data.modelNamesInOrder : modelNames;
-    if (data.isRefPath && Array.isArray(ret) && ret.length === modelNamesForRefPath.length) {
-      ids = matchIdsToRefPaths(ret, modelNamesForRefPath, modelName);
+    if (data.isRefPath && Array.isArray(ret) && flat.length === modelNamesForRefPath.length) {
+      ids = flat.filter((val, i) => modelNamesForRefPath[i] === modelName);
     }
 
     const perDocumentLimit = options.perDocumentLimit == null ?
@@ -567,20 +567,6 @@ function _getModelFromConn(conn, modelName) {
   }
 
   return conn.model(modelName);
-}
-
-function matchIdsToRefPaths(ids, refPaths, refPathToFind) {
-  if (!Array.isArray(refPaths)) {
-    return refPaths === refPathToFind
-      ? Array.isArray(ids)
-        ? utils.array.flatten(ids)
-        : [ids]
-      : [];
-  }
-  if (Array.isArray(ids) && Array.isArray(refPaths)) {
-    return ids.flatMap((id, index) => matchIdsToRefPaths(id, refPaths[index], refPathToFind));
-  }
-  return [];
 }
 
 /*!
