@@ -4,11 +4,13 @@
   "description": "A backend server for handling REST API requests.",
   "main": "server.js",
   "type": "module",
+  "engines": {
+    "node": "lts/*"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "npx node -r dotenv/config --experimental-json-modules server.js",
     "prod": "node server.js",
-    "postinstall": "chmod +x node_modules/.bin/nodemon",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint .",
     "build": "babel src -d dist"
