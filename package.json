@@ -8,9 +8,9 @@
     "node": "lts/*"
   },
   "scripts": {
-    "start": "node server.js",
+    "start": "node ./server.js",
     "dev": "npx node -r dotenv/config --experimental-json-modules server.js",
-    "prod": "node server.js",
+    "prod": "node ./server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint .",
     "build": "babel src -d dist"
