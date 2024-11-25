@@ -1,5 +1,5 @@
 import express from 'express';
-import { createOrder, getOrdersByRestaurant, getOrdersByTable,getOrdersByDate } from '../controllers/order.controller.js'; // Adjust the import path
+import { createOrder,verifyPayment, getOrdersByRestaurant, getOrdersByTable,getOrdersByDate } from '../controllers/order.controller.js'; // Adjust the import path
 
 const router = express.Router();
 router.get('/test', (req, res) => {
@@ -9,5 +9,6 @@ router.post('/create', createOrder); // Endpoint to create a new order
 router.get('/restaurant/:restaurantId', getOrdersByRestaurant); // Get orders for a specific restaurant
 router.get('/table/:diningTableId', getOrdersByTable); // Get orders for a specific table
 router.get('/date', getOrdersByDate);
+router.post('/verify-payment', verifyPayment);
 
 export default router;
