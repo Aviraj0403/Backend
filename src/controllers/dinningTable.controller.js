@@ -4,7 +4,8 @@ import { MasterUser, ROLES } from '../models/masterUser.model.js';
 import mongoose from 'mongoose';
 
 import { ApiResponse } from '../utils/ApiResponse.js';
-// import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from 'uuid'; // Correct import for UUID v4
+
 // Create a new dining table
 export const createDiningTable = async (req, res, next) => {
     try {
