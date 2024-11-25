@@ -1,11 +1,11 @@
 import mongoose from 'mongoose';
-import { v4 as uuidv4 } from 'uuid';
+// import { v4 as uuidv4 } from 'uuid';
 
 const diningTableSchema = new mongoose.Schema(
   {
     tableId: {
       type: String,
-      default: uuidv4, // Generate a UUID for each dining table by default
+    //   default: uuidv4, // Generate a UUID for each dining table by default
       unique: true, // Ensure the UUID is unique
     },
     name: {
