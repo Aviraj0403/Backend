@@ -43,7 +43,7 @@ app.use(cookieParser());
 // Middleware
 const corsOptions = {
   origin: (origin, callback) => {
-    const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(o => o.trim());
+    const allowedOrigins = (process.env.CORS_ORIGINS || 'https://backend-obet.onrender.com/api/auth/restaurantowner'|| '').split(',').map(o => o.trim());
 
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
