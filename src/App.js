@@ -44,8 +44,7 @@ app.use(cookieParser());
 const corsOptions = {
   origin: (origin, callback) => {
     const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(o => o.trim());
-    
-    // Allow requests with no origin (like mobile apps or curl requests)
+
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -53,13 +52,16 @@ const corsOptions = {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true // Allow credentials (cookies, etc.)
+  credentials: true, // Allow credentials (cookies, etc.)
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],  // Ensure your frontend sends headers that the backend can accept
 };
-
+app.options('*', cors(corsOptions));
 app.get('/check',(req,res)=>
 {
   res.send("Server Check");
 })
+
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(express.json());
