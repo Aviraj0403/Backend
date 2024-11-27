@@ -3,7 +3,7 @@ import { createHmac } from 'crypto';
 import dotenv from 'dotenv';
 
 dotenv.config();
-console.log(process.env.RAZORPAY_KEY_ID, process.env.RAZORPAY_KEY_SECRET);  // Debugging log
+// console.log(process.env.RAZORPAY_KEY_ID, process.env.RAZORPAY_KEY_SECRET);  // Debugging log
 
 
 // Initialize Razorpay with keys from environment variables
