@@ -33,7 +33,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.CORS_ORIGIN || "*", // Use environment variable for CORS
+    origin: process.env.CORS_ORIGINS || "*", // Use environment variable for CORS
     methods: ["GET", "POST"],  // Specify allowed methods
     credentials: true,  // Allow cookies and authentication headers
   }
