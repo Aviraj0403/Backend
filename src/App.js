@@ -44,7 +44,6 @@ app.use(cookieParser());
 const corsOptions = {
   origin: (origin, callback) => {
     const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(o => o.trim());
-
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -53,16 +52,18 @@ const corsOptions = {
     }
   },
   credentials: true, // Allow credentials (cookies, etc.)
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],  // Ensure your frontend sends headers that the backend can accept
+  methods: ['GET', 'POST', 'OPTIONS'],  // Allowed methods
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],  // Add X-CSRF-Token to allowed headers
 };
-app.options('*', cors(corsOptions));
+
+app.options('*', cors(corsOptions));  // Preflight handling
+app.use(cors(corsOptions));  // Enable CORS for all routes
+
 app.get('/check',(req,res)=>
 {
   res.send("Server Check");
 })
 
-app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
