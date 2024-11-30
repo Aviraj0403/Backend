@@ -1,12 +1,11 @@
-// app.js
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import http from 'http';  // Import the HTTP module
-import { Server } from 'socket.io';  // Import Socket.IO
+import http from 'http';
+import { Server } from 'socket.io'; 
 import { ApiError } from './utils/ApiError.js';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -14,15 +13,14 @@ import authRoutes from './routers/auth.routes.js';
 import foodRoutes from './routers/food.routes.js'; 
 import uploadRoutes from './routers/upload.routes.js';
 import masterRoutes from './routers/master.routes.js';
-import tableRoutes from './routers/dinningTable.routes.js'; // Import the database connection function
+import tableRoutes from './routers/dinningTable.routes.js'; 
 import offerRoutes from './routers/offer.routes.js';
 import scanRoutes from './routers/scan.routes.js';
-import orderRoutes from './routers/order.routes.js'
+import orderRoutes from './routers/order.routes.js';
 import employeeRoutes from './routers/employee.routes.js';
-import attendanceRoutes from './routers/attendance.routes.js'
+import attendanceRoutes from './routers/attendance.routes.js';
 import { verifyJWT } from './middleware/auth.middleware.js';
 import { setupSocketIO } from './socket.js'; 
-import HTTP from 'http';
 
 dotenv.config();
 
@@ -31,20 +29,12 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: process.env.CORS_ORIGINS || "*", // Use environment variable for CORS
-    methods: ["GET", "POST"],  // Specify allowed methods
-    credentials: true,  // Allow cookies and authentication headers
-  }
-});
-app.use(helmet());
-app.use(cookieParser());
-// Middleware
+
+// Read allowed origins from the .env file
+const allowedOrigins = process.env.CORS_ORIGINS.split(',').map(o => o.trim());
+
 const corsOptions = {
   origin: (origin, callback) => {
-    const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(o => o.trim());
-
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -57,21 +47,28 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],  // Add X-CSRF-Token to allowed headers
 };
 
-app.options('*', cors(corsOptions));  // Preflight handling
-app.use(cors(corsOptions));  // Enable CORS for all routes
+app.use(helmet());
+app.use(cookieParser());
 
-app.get('/check',(req,res)=>
-{
-  res.send("Server Check");
-})
+// Apply CORS middleware to HTTP requests
+app.use(cors(corsOptions));
 
+// Apply CORS options to Socket.IO
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+});
+
+// Middleware
 app.use(bodyParser.json());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-//test
+
 // Routes
 app.use('/api/auth', authRoutes); 
-// Auth routes don't require JWT
 app.use('/api/scan', scanRoutes);
 app.use('/api/food', foodRoutes);
 app.use('/api/upload', uploadRoutes);
@@ -80,8 +77,6 @@ app.use('/api/table', tableRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/attendance', attendanceRoutes);
-
-
 app.use('/api/users', verifyJWT, masterRoutes);
 
 // Error handling middleware
@@ -103,10 +98,10 @@ app.use((err, req, res, next) => {
 
 // 404 handler
 app.use((req, res) => {
-  res.status(404).json({ message: 'Not Found get it' });
+  res.status(404).json({ message: 'Not Found' });
 });
 
-
+// Initialize socket.io
 setupSocketIO(io);
 
 export default server;
