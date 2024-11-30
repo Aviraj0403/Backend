@@ -81,6 +81,6 @@ export const csrfProtectionMiddleware = (req, res, next) => {
 };
 
 // Function to generate a CSRF token
-export const generateCsrfToken = () => {
-    return crypto.randomBytes(32).toString('hex');
-};
+// export const generateCsrfToken = () => {
+//     return crypto.randomBytes(32).toString('hex');
+// };

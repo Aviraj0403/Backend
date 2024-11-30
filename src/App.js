@@ -43,7 +43,7 @@ const corsOptions = {
     }
   },
   credentials: true, // Allow credentials (cookies, etc.)
-  methods: ['GET', 'POST', 'OPTIONS'],  // Allowed methods
+  methods: ['GET', 'POST','PUT', 'DELETE', 'OPTIONS'],  // Allowed methods
   allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],  // Add X-CSRF-Token to allowed headers
 };
 

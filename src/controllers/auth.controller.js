@@ -5,6 +5,10 @@ import { Restaurant } from '../models/restaurant.model.js';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 
+const backendUrl = process.env.NODE_ENV === "production" ? process.env.BACKEND_URL_PROD : process.env.BACKEND_URL;
+console.log("Backend URL is:", backendUrl);
+
+
 // Check if user exists by email
 const userExists = async (email) => {
     return await MasterUser.findOne({ email });
