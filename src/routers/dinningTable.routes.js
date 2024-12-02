@@ -14,7 +14,7 @@ router.get('/:restaurantId/',verifyJWT, isRestaurantOwner, getDiningTables);
 router.get('/:restaurantId/get-active', getActiveDiningTables);
 
 // GET a single table by ID
-router.get('/:restaurantId/:id', getDiningTableById);
+router.get('/:restaurantId/:id',verifyJWT, getDiningTableById);
 
 // POST a new table
 router.post('/:restaurantId/',verifyJWT, isRestaurantOwner, createDiningTable);

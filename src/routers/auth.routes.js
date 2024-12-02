@@ -6,6 +6,7 @@ import {
     loginRestaurantOwner,
     checkSuperAdmin,
     logoutUser,
+    refreshToken,
     // refreshAccessToken
 } from '../controllers/auth.controller.js';
 import { verifyJWT, isSuperAdmin, csrfProtectionMiddleware } from '../middleware/auth.middleware.js';
@@ -21,6 +22,7 @@ const loginLimiter = rateLimit({
 
 // router.use(csrfProtectionMiddleware)
 // Super Admin routes
+router.post('/refresh-token', refreshToken);
 router.post('/superadmin/register', verifyJWT, isSuperAdmin, csrfProtectionMiddleware, registerSuperAdmin);
 router.post('/superadmin/login',  loginLimiter,loginSuperAdmin); // Login doesn't need JWT
 // router.route("/refresh-token").post(refreshAccessToken)

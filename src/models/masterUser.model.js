@@ -88,26 +88,40 @@ masterUserSchema.methods.isPasswordCorrect = async function (password) {
 
 // Method to generate access token
 masterUserSchema.methods.generateAccessToken = function () {
-    const token = jwt.sign({
-        _id: this._id,
-        username: this.username, role: this.role
-    }, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: '1h'
-    });
-    // console.log("Generated Access Token:", token); // Log the generated token
-    return token; // Return the generated token
+    try {
+        const token = jwt.sign({
+            _id: this._id,
+            username: this.username,
+            role: this.role
+        }, process.env.ACCESS_TOKEN_SECRET, {
+            expiresIn: '1h'
+        });
+        console.log("Generated Access Token:", token);
+        return token;
+    } catch (error) {
+        console.error("Error generating access token:", error);
+        throw new Error("Token generation failed");
+    }
 };
 
-// Method to generate refresh token
 masterUserSchema.methods.generateRefreshToken = function () {
-    return jwt.sign({
-        _id: this._id,
-        username: this.username,
-        role: this.role
-    }, process.env.REFRESH_TOKEN_SECRET, {
-        expiresIn: '7d'
-    });
+    try {
+        const token = jwt.sign({
+            _id: this._id,
+            username: this.username,
+            role: this.role
+        }, process.env.REFRESH_TOKEN_SECRET, {
+            expiresIn: '7d'
+        });
+        console.log("Generated Refresh Token:", token);
+        return token;
+    } catch (error) {
+        console.error("Error generating refresh token:", error);
+        throw new Error("Token generation failed");
+    }
 };
+
+
 
 // Creating User Models
 const MasterUser = mongoose.model('MasterUser', masterUserSchema);
