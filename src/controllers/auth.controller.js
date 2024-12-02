@@ -14,33 +14,27 @@ const userExists = async (email) => {
     return await MasterUser.findOne({ email });
 };
 export const refreshToken = async (req, res) => {
-    const { refreshToken } = req.cookies; // or req.body.refreshToken if passed in the body
+    const { refreshToken } = req.cookies;
 
     if (!refreshToken) {
         return res.status(400).json({ message: 'Refresh token is missing' });
     }
 
     try {
-        // Verify the refresh token
         const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-
-        // Find the user using the decoded token data
         const user = await MasterUser.findById(decoded._id);
         if (!user) {
             return res.status(401).json({ message: 'Invalid refresh token' });
         }
 
-        // Generate a new access token
         const newAccessToken = user.generateAccessToken();
-
-        // Send the new access token to the client
         return res.json({ accessToken: newAccessToken });
-
     } catch (error) {
         console.error('Error refreshing token:', error);
         return res.status(403).json({ message: 'Invalid or expired refresh token' });
     }
 };
+
 
 // Generate a CSRF token
 const generateCsrfToken = () => {

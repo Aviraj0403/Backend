@@ -5,15 +5,18 @@ import { MasterUser } from "../models/masterUser.model.js";
 import crypto from 'crypto';
 
 // Helper function to extract the token from the request
+// Helper function to extract the token from the request
 const extractToken = (req) => {
     console.log("Cookies:", req.cookies); 
     console.log("Headers:", req.headers); // Log headers
+
     const cookieToken = req.cookies?.accessToken; 
     const headerToken = req.headers?.authorization ? req.headers.authorization.split(" ")[1] : null; 
+
     const token = cookieToken || headerToken; 
 
     if (!token) {
-        console.warn("No token found in cookies or headers."); // Warning if no token
+        console.warn("No token found in cookies or headers.");
     }
 
     return token;
@@ -24,6 +27,7 @@ const getUserById = async (userId) => {
     return await MasterUser.findById(userId).select("-password");
 };
 
+// Middleware to verify JWT
 // Middleware to verify JWT
 export const verifyJWT = asyncHandler(async (req, _, next) => {
     try {
@@ -44,9 +48,17 @@ export const verifyJWT = asyncHandler(async (req, _, next) => {
         next();
     } catch (error) {
         console.error("JWT Verification Error:", error);
+        if (error instanceof jwt.JsonWebTokenError) {
+            // Malformed token error
+            return next(new ApiError(401, "Invalid access token"));
+        } else if (error instanceof jwt.TokenExpiredError) {
+            // Token expired error
+            return next(new ApiError(401, "Token has expired"));
+        }
         return next(new ApiError(401, error?.message || "Invalid access token"));
     }
 });
+
 
 // Role-checking middleware
 const checkRole = (roles) => {
@@ -73,12 +85,16 @@ export const csrfProtectionMiddleware = (req, res, next) => {
     const csrfToken = req.cookies.csrfToken; // CSRF token from cookies
     const clientToken = req.headers['x-csrf-token']; // CSRF token from request headers
 
+    console.log("CSRF Token from Cookies:", csrfToken);
+    console.log("CSRF Token from Headers:", clientToken);
+
     if (!csrfToken || csrfToken !== clientToken) {
         return res.status(403).json({ message: 'CSRF token validation failed' });
     }
 
     next();
 };
+
 
 // Function to generate a CSRF token
 // export const generateCsrfToken = () => {
