@@ -101,7 +101,7 @@ const setTokensAndCookies = async (res, user,restaurantId) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production", // Use secure in production
             maxAge: 3600000, // 1 ho
-            sameSite: 'Nonr',
+            sameSite: 'None',
             path: '/'
         })
         .cookie("refreshToken", refreshToken, { // Use refreshToken instead of refreshAccessToken
