@@ -35,7 +35,6 @@ export const refreshToken = async (req, res) => {
     }
 };
 
-
 // Generate a CSRF token
 const generateCsrfToken = () => {
     return crypto.randomBytes(32).toString('hex');
@@ -102,13 +101,13 @@ const setTokensAndCookies = async (res, user,restaurantId) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production", // Use secure in production
             maxAge: 3600000, // 1 ho
-            sameSite: 'Strict',
+            sameSite: 'Lax',
             path: '/'
         })
         .cookie("refreshToken", refreshToken, { // Use refreshToken instead of refreshAccessToken
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: 'Strict',
+            sameSite: 'Lax',
             path: '/'
         })
         .cookie("csrfToken", csrfToken, {
