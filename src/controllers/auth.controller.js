@@ -101,13 +101,13 @@ const setTokensAndCookies = async (res, user,restaurantId) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production", // Use secure in production
             maxAge: 3600000, // 1 ho
-            sameSite: 'Lax',
+            sameSite: 'Nonr',
             path: '/'
         })
         .cookie("refreshToken", refreshToken, { // Use refreshToken instead of refreshAccessToken
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: 'Lax',
+            sameSite: 'None',
             path: '/'
         })
         .cookie("csrfToken", csrfToken, {
