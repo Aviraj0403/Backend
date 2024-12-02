@@ -99,7 +99,7 @@ const setTokensAndCookies = async (res, user,restaurantId) => {
     // Set cookies
     res
         .cookie("accessToken", accessToken, {
-            httpOnly: false,
+            httpOnly: true,
             secure: process.env.NODE_ENV === "production", // Use secure in production
             maxAge: 3600000, // 1 ho
             sameSite: 'Strict',
