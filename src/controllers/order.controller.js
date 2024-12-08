@@ -326,3 +326,79 @@ export const getOrdersByDate = async (req, res) => {
     return res.status(500).json({ message: 'Server error', error });
   }
 };
+// Route to get today's orders for a specific restaurant
+export const getTodaysOrders = async (req, res) => {
+  const { restaurantId } = req.params;
+
+  try {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);  // Set time to 00:00:00
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999); // Set time to 23:59:59
+
+    const orders = await Order.aggregate([
+      {
+        $match: {
+          createdAt: {
+            $gte: startOfDay,
+            $lt: endOfDay,
+          },
+          ...(restaurantId ? { restaurantId: new mongoose.Types.ObjectId(restaurantId) } : {}),
+        },
+      },
+      {
+        $lookup: {
+          from: 'foods',
+          localField: 'items.foodId',
+          foreignField: '_id',
+          as: 'foodDetails',
+        },
+      },
+      {
+        $lookup: {
+          from: 'offers',
+          localField: 'offerId',
+          foreignField: '_id',
+          as: 'offerDetails',
+        },
+      },
+      {
+        $lookup: {
+          from: 'diningtables',
+          localField: 'diningTableId',  // The ID of the dining table in the order
+          foreignField: '_id',  // The _id in the DiningTable collection
+          as: 'diningTableDetails',  // Adding dining table details to the order
+        },
+      },
+      {
+        $unwind: {
+          path: '$diningTableDetails',
+          preserveNullAndEmptyArrays: true, // If no dining table is found
+        },
+      },
+      {
+        $project: {
+          customerName: 1,
+          phone: 1,
+          diningTableId: 1,
+          diningTableName: '$diningTableDetails.name',  // Access the name from the diningTableDetails
+          items: 1,
+          paymentId: 1,
+          status: 1,
+          totalPrice: 1,
+          foodDetails: { $arrayElemAt: ['$foodDetails', 0] },
+          offerDetails: { $arrayElemAt: ['$offerDetails', 0] },
+          createdAt: 1,
+        },
+      },
+    ]);
+
+    return res.status(200).json(orders);
+  } catch (error) {
+    console.error("Error fetching today's orders:", error);
+    return res.status(500).json({ message: 'Error fetching orders', error: error.message });
+  }
+};
+
+
+

@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Offer } from './offer.model.js';
+import { Offer } from './offer.model.js'; // Assuming you have an Offer model
 
 const ORDER_STATUSES = ['Pending', 'Confirmed', 'In Progress', 'Completed', 'Cancelled'];
 const PAYMENT_STATUSES = ['Pending', 'Completed', 'Failed'];
@@ -107,7 +107,12 @@ orderSchema.pre('validate', async function (next) {
     // Check for applicable offer if offerId is provided
     if (this.offerId) {
       const offer = await Offer.findById(this.offerId);
-      if (offer && offer.status === 'Active' && new Date() >= offer.startDate && new Date() <= offer.endDate) {
+      if (
+        offer &&
+        offer.status === 'Active' &&
+        new Date() >= offer.startDate &&
+        new Date() <= offer.endDate
+      ) {
         const discountAmount = (this.totalPrice * offer.discountPercentage) / 100;
         this.discount = discountAmount;
         this.totalPrice -= discountAmount;
@@ -119,7 +124,7 @@ orderSchema.pre('validate', async function (next) {
 
     next();
   } catch (error) {
-    console.error('Error calculating order price:', error); // Log the error for debugging
+    console.error('Error calculating order price:', error);
     next(error);
   }
 });
