@@ -20,7 +20,6 @@ export const setupSocketIO = (io) => {
             console.log(`New order received for Table ${data.tableId} at Restaurant ${data.restaurantId}`);
             console.log("Order Details:", data.orderDetails);
 
-            // Create a new order and save it to the database
             try {
                 const { selectedTable, totalPrice, cart } = data.orderDetails;
 
@@ -48,8 +47,6 @@ export const setupSocketIO = (io) => {
                 console.error('Error saving new order to database:', error);
             }
         });
-
-        // Other socket event handlers (paymentProcessed, orderUpdate, etc.)
 
         socket.on('disconnect', () => {
             console.log('User disconnected');
