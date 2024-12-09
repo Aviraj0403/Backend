@@ -11,7 +11,6 @@ export const setupSocketIO = (io) => {
         });
 
         // Listen for new orders
-        // Process incoming order data
         socket.on('newOrder', async (data) => {
             if (!data.restaurantId || !data.orderDetails || !data.orderDetails.cart || !data.tableId) {
                 console.error('Invalid order data:', data);
@@ -21,41 +20,25 @@ export const setupSocketIO = (io) => {
             console.log(`New order received for Table ${data.tableId} at Restaurant ${data.restaurantId}`);
             console.log("Order Details:", data.orderDetails);
 
+            // Create a new order and save it to the database
             try {
                 const { selectedTable, totalPrice, cart } = data.orderDetails;
 
-                // Map cart items correctly with foodId and price
-                const items = cart.map(item => {
-                    if (!item.fooditemId || !item.price) {
-                        console.error('Missing required fields in cart item:', item);
-                        return null;
-                    }
-                    return {
-                        foodId: item.fooditemId,  // Ensure this maps correctly to 'foodId'
-                        quantity: item.quantity,
-                        price: item.price          // Ensure 'price' is included for each item
-                    };
-                }).filter(item => item !== null); // Remove invalid items from the list
-
-                // If no valid items exist in the order, exit
-                if (items.length === 0) {
-                    console.error('No valid items found in order');
-                    return;
-                }
-
-                // Create new order
                 const newOrder = new Order({
-                    customer: data.customer,   // Ensure 'customer' is passed
-                    phone: data.phone,         // Ensure 'phone' is passed
+                    customer: data.customerName, // Assuming you send customer details
+                    phone: data.customerPhone, // Assuming phone number is provided
                     restaurantId: data.restaurantId,
                     diningTableId: selectedTable,
-                    items: items,              // Use the mapped items array
+                    items: cart.map(item => ({
+                        foodId: item.foodId,
+                        quantity: item.quantity,
+                        price: item.price
+                    })),
                     totalPrice: totalPrice,
                     paymentStatus: 'Pending',
                     status: 'Pending',
                 });
 
-                // Save the new order to the database
                 await newOrder.save();
 
                 // Emit the new order to all clients in the restaurant room
@@ -65,7 +48,6 @@ export const setupSocketIO = (io) => {
                 console.error('Error saving new order to database:', error);
             }
         });
-
 
         // Other socket event handlers (paymentProcessed, orderUpdate, etc.)
 
