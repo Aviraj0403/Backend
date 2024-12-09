@@ -20,19 +20,25 @@ export const setupSocketIO = (io) => {
             console.log(`New order received for Table ${data.tableId} at Restaurant ${data.restaurantId}`);
             console.log("Order Details:", data.orderDetails);
 
-            // Create a new order and save it to the database
-            try {
-                const { selectedTable, totalPrice, cart } = data.orderDetails;
+            // Ensure that required fields are provided
+            const { customerName, customerPhone, restaurantId, orderDetails } = data;
+            const { selectedTable, totalPrice, cart } = orderDetails;
 
+            if (!customerName || !customerPhone || !cart || cart.length === 0) {
+                console.error('Missing required order details:', data);
+                return;
+            }
+
+            try {
                 const newOrder = new Order({
-                    customer: data.customerName, // Assuming you send customer details
-                    phone: data.customerPhone, // Assuming phone number is provided
-                    restaurantId: data.restaurantId,
+                    customer: customerName,  // Assuming customer name is provided
+                    phone: customerPhone,    // Assuming phone number is provided
+                    restaurantId: restaurantId,
                     diningTableId: selectedTable,
                     items: cart.map(item => ({
-                        foodId: item.foodId,
-                        quantity: item.quantity,
-                        price: item.price
+                        foodId: item.foodId,     // Ensure foodId is present
+                        quantity: item.quantity, // Ensure quantity is present
+                        price: item.price        // Ensure price is present
                     })),
                     totalPrice: totalPrice,
                     paymentStatus: 'Pending',
@@ -42,7 +48,9 @@ export const setupSocketIO = (io) => {
                 await newOrder.save();
 
                 // Emit the new order to all clients in the restaurant room
-                io.to(data.restaurantId).emit('newOrder', data);
+                io.to(restaurantId).emit('newOrder', data);
+
+                console.log(`Order for Table ${selectedTable} saved successfully`);
 
             } catch (error) {
                 console.error('Error saving new order to database:', error);
