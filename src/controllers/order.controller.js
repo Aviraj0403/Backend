@@ -34,7 +34,11 @@ export const createOrder = async (req, res) => {
 
     // Convert fooditemId strings to ObjectId instances
     const foodItemIds = cart.map(item => new mongoose.Types.ObjectId(item.fooditemId));
+    console.log("Food Item IDs: ", foodItemIds);
     const foodItems = await Food.find({ _id: { $in: foodItemIds } }).select('price');
+    console.log("Fetched Food Items: ", foodItems);
+
+     
 
     const foodPricesMap = foodItems.reduce((map, item) => {
       map[item._id.toString()] = item.price;
@@ -43,25 +47,26 @@ export const createOrder = async (req, res) => {
 
     const orderItems = cart.map(item => {
       const price = foodPricesMap[item.fooditemId];
-
+    
       if (typeof price !== 'number') {
         console.error(`Price not found for fooditemId: ${item.fooditemId}`);
-        return null; // Return null for missing prices
+        return null; // Skip the item if price is not found
       }
-
+    
       const quantity = item.quantity || 1; // Default to 1 if not provided
       const totalPrice = price * quantity;
-
+    
       return {
         foodId: item.fooditemId,
         quantity,
         price: totalPrice,
       };
-    }).filter(item => item !== null);
-
+    }).filter(item => item !== null); // Filter out null items
+    
     if (orderItems.length === 0) {
       return res.status(400).json({ message: "No valid food items found in cart" });
     }
+    
 
     const totalPrice = orderItems.reduce((sum, item) => sum + item.price, 0);
 
