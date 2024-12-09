@@ -393,16 +393,7 @@ export const getTodaysOrders = async (req, res) => {
       },
     ]);
 
-    // Sort the orders by the createdAt field to assign order numbers based on the order of arrival
-    const sortedOrders = orders.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-
-    // Add an orderNumber field to each order
-    const ordersWithOrderNumber = sortedOrders.map((order, index) => ({
-      ...order,
-      orderNumber: index + 1,  // Start numbering from 1
-    }));
-
-    return res.status(200).json(ordersWithOrderNumber);
+    return res.status(200).json(orders);
   } catch (error) {
     console.error("Error fetching today's orders:", error);
     return res.status(500).json({ message: 'Error fetching orders', error: error.message });
