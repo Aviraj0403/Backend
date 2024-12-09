@@ -9,7 +9,6 @@ import { ApiResponse } from '../utils/ApiResponse.js';
 import { MasterUser, ROLES } from '../models/masterUser.model.js'; 
 import { StatusCodes } from 'http-status-codes';
 import {calculateTotalPrice} from '../utils/Math.js'
-import mongoose from 'mongoose';
 
 export const createOrder = async (req, res) => {
   try {
@@ -41,6 +40,7 @@ export const createOrder = async (req, res) => {
       return map;
     }, {});
 
+    // Build order items
     const orderItems = cart.map(item => {
       const price = foodPricesMap[item.fooditemId];
 
@@ -57,21 +57,23 @@ export const createOrder = async (req, res) => {
         quantity,
         price: totalPrice,
       };
-    }).filter(item => item !== null);
+    }).filter(item => item !== null); // Filter out invalid items
 
     if (orderItems.length === 0) {
       return res.status(400).json({ message: "No valid food items found in cart" });
     }
 
+    // Calculate the total price of the order
     const totalPrice = orderItems.reduce((sum, item) => sum + item.price, 0);
 
-    // Adjust for priority and offer discount
+    // Adjust for priority (additional charge if priority is set)
     let finalTotalPrice = totalPrice;
 
     if (priority) {
       finalTotalPrice += totalPrice * 0.2; // Add 20% for priority
     }
 
+    // Adjust for selected offer discount if applicable
     if (selectedOffer) {
       const discountPercentage = Number(selectedOffer.discountPercentage) || 0;
       finalTotalPrice -= (finalTotalPrice * discountPercentage) / 100; // Apply discount
@@ -120,6 +122,7 @@ export const createOrder = async (req, res) => {
     res.status(500).json({ message: 'Error creating order', error: error.message });
   }
 };
+
 
 // Verify Payment Controller
 
