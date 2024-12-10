@@ -33,7 +33,9 @@ export const createOrder = async (req, res) => {
     }
 
     // Convert fooditemId strings to ObjectId instances
-    const foodItemIds = cart.map(item => new mongoose.Types.ObjectId(item.fooditemId));
+   // Convert fooditemId strings to ObjectId instances
+const foodItemIds = cart.map(item => new mongoose.Types.ObjectId(item.foodId)); // Correct this to foodId
+console.log("fooditemid",foodItemIds);
     const foodItems = await Food.find({ _id: { $in: foodItemIds } }).select('price');
 
     const foodPricesMap = foodItems.reduce((map, item) => {
