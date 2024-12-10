@@ -9,8 +9,8 @@ import { ApiResponse } from '../utils/ApiResponse.js';
 import { MasterUser, ROLES } from '../models/masterUser.model.js'; 
 import { StatusCodes } from 'http-status-codes';
 import {calculateTotalPrice} from '../utils/Math.js'
-// import {calculateTotalPrice} from '../utils/Math.js'
 import mongoose from 'mongoose';
+
 export const createOrder = async (req, res) => {
   try {
     const {
@@ -34,11 +34,7 @@ export const createOrder = async (req, res) => {
 
     // Convert fooditemId strings to ObjectId instances
     const foodItemIds = cart.map(item => new mongoose.Types.ObjectId(item.fooditemId));
-    console.log("Food Item IDs: ", foodItemIds);
     const foodItems = await Food.find({ _id: { $in: foodItemIds } }).select('price');
-    console.log("Fetched Food Items: ", foodItems);
-
-     
 
     const foodPricesMap = foodItems.reduce((map, item) => {
       map[item._id.toString()] = item.price;
@@ -47,26 +43,25 @@ export const createOrder = async (req, res) => {
 
     const orderItems = cart.map(item => {
       const price = foodPricesMap[item.fooditemId];
-    
+
       if (typeof price !== 'number') {
         console.error(`Price not found for fooditemId: ${item.fooditemId}`);
-        return null; // Skip the item if price is not found
+        return null; // Return null for missing prices
       }
-    
+
       const quantity = item.quantity || 1; // Default to 1 if not provided
       const totalPrice = price * quantity;
-    
+
       return {
         foodId: item.fooditemId,
         quantity,
         price: totalPrice,
       };
-    }).filter(item => item !== null); // Filter out null items
-    
+    }).filter(item => item !== null);
+
     if (orderItems.length === 0) {
       return res.status(400).json({ message: "No valid food items found in cart" });
     }
-    
 
     const totalPrice = orderItems.reduce((sum, item) => sum + item.price, 0);
 
@@ -125,8 +120,6 @@ export const createOrder = async (req, res) => {
     res.status(500).json({ message: 'Error creating order', error: error.message });
   }
 };
-
-
 
 // Verify Payment Controller
 
@@ -400,12 +393,22 @@ export const getTodaysOrders = async (req, res) => {
       },
     ]);
 
-    return res.status(200).json(orders);
+    // Sort the orders by the createdAt field to assign order numbers based on the order of arrival
+    const sortedOrders = orders.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+    // Add an orderNumber field to each order
+    const ordersWithOrderNumber = sortedOrders.map((order, index) => ({
+      ...order,
+      orderNumber: index + 1,  // Start numbering from 1
+    }));
+
+    return res.status(200).json(ordersWithOrderNumber);
   } catch (error) {
     console.error("Error fetching today's orders:", error);
     return res.status(500).json({ message: 'Error fetching orders', error: error.message });
   }
 };
+
 
 
 
