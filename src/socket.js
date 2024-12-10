@@ -38,6 +38,7 @@ export const setupSocketIO = (io) => {
                     paymentStatus: 'Pending',
                     status: 'Pending',
                 });
+                console.log("new  Order",newOrder);
 
                 await newOrder.save();
 
