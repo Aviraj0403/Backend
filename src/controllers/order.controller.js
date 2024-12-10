@@ -32,30 +32,36 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ message: "cart must be a non-empty array" });
     }
 
-    // Convert fooditemId strings to ObjectId instances
-   // Convert fooditemId strings to ObjectId instances
-const foodItemIds = cart.map(item => new mongoose.Types.ObjectId(item.foodId)); // Correct this to foodId
-console.log("fooditemid",foodItemIds);
-    const foodItems = await Food.find({ _id: { $in: foodItemIds } }).select('price');
+    // Convert foodId strings to ObjectId instances
+    const foodItemIds = cart.map(item => new mongoose.Types.ObjectId(item.foodId)); // Correct to foodId if that's the key in the cart
+    console.log("foodItemIds:", foodItemIds);
 
+    // Query the Food items for prices
+    const foodItems = await Food.find({ _id: { $in: foodItemIds } }).select('price');
+    console.log("Food Items from DB:", foodItems);
+
+    // Map food item prices
     const foodPricesMap = foodItems.reduce((map, item) => {
+      console.log("Found item:", item);
       map[item._id.toString()] = item.price;
       return map;
     }, {});
+    console.log("Food Prices Map:", foodPricesMap);
 
+    // Create order items
     const orderItems = cart.map(item => {
-      const price = foodPricesMap[item.fooditemId];
+      const price = foodPricesMap[item.foodId];  // Use foodId here consistently
 
       if (typeof price !== 'number') {
-        console.error(`Price not found for fooditemId: ${item.fooditemId}`);
-        return null; // Return null for missing prices
+        console.error(`Price not found for foodId: ${item.foodId}`);
+        return null;  // Return null for missing prices
       }
 
       const quantity = item.quantity || 1; // Default to 1 if not provided
       const totalPrice = price * quantity;
 
       return {
-        foodId: item.fooditemId,
+        foodId: item.foodId,  // Use foodId consistently
         quantity,
         price: totalPrice,
       };
@@ -65,6 +71,7 @@ console.log("fooditemid",foodItemIds);
       return res.status(400).json({ message: "No valid food items found in cart" });
     }
 
+    // Calculate total price
     const totalPrice = orderItems.reduce((sum, item) => sum + item.price, 0);
 
     // Adjust for priority and offer discount
@@ -122,6 +129,7 @@ console.log("fooditemid",foodItemIds);
     res.status(500).json({ message: 'Error creating order', error: error.message });
   }
 };
+
 
 // Verify Payment Controller
 
