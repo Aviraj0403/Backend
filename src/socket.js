@@ -23,22 +23,23 @@ export const setupSocketIO = (io) => {
             // Create a new order and save it to the database
             try {
                 const { selectedTable, totalPrice, cart } = data.orderDetails;
-
+                // Ensure cart items include both foodId and price
+                const items = cart.map(item => ({
+                    foodId: item.fooditemId, // Make sure you're using the correct field for foodId
+                    quantity: item.quantity,
+                    price: item.price || 0, // Ensure the price exists; use 0 as a fallback if not available
+                }));
                 const newOrder = new Order({
                     customer: data.customerName, // Assuming you send customer details
                     phone: data.customerPhone, // Assuming phone number is provided
                     restaurantId: data.restaurantId,
                     diningTableId: selectedTable,
-                    items: cart.map(item => ({
-                        foodId: item.foodId,
-                        quantity: item.quantity,
-                        price: item.price
-                    })),
+                    items: items,
                     totalPrice: totalPrice,
                     paymentStatus: 'Pending',
                     status: 'Pending',
                 });
-                console.log("new  Order",newOrder);
+                console.log("new  Order", newOrder);
 
                 await newOrder.save();
 
