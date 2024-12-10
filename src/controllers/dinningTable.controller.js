@@ -6,10 +6,10 @@ import mongoose from 'mongoose';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { v4 as uuidv4 } from 'uuid'; // Correct import for UUID v4
 
-// Create a new dining table
+
 export const createDiningTable = async (req, res, next) => {
     try {
-        const { name, size, restaurantId } = req.body;
+        const { name, size, restaurantId, status } = req.body; // Destructure status from the request body if provided
         const user = req.user;
 
         // Check if user is authenticated
@@ -26,6 +26,7 @@ export const createDiningTable = async (req, res, next) => {
         const restaurantOwner = await MasterUser.findById(user._id).select('restaurants').lean();
         console.log('Restaurant Owner Restaurants:', restaurantOwner.restaurants, 'Restaurant ID:', restaurantId);
 
+        // Check if the user owns the restaurant
         if (!restaurantOwner || !restaurantOwner.restaurants.some(r => r.toString() === restaurantId)) {
             throw new ApiError(400, 'You must own a restaurant to create dining tables.');
         }
@@ -35,21 +36,30 @@ export const createDiningTable = async (req, res, next) => {
             throw new ApiError(400, 'Name, size, and restaurant ID are required fields.');
         }
 
+        // Handle default value for status if it's not provided
+        const tableStatus = status || 'Active'; // Default to 'Active' if status is not provided
+
         // Create a new dining table instance
         const newTable = new DiningTable({
             name,
             size,
+            status: tableStatus, // Ensure status is provided or defaults to 'Active'
             restaurantId,
-            tableId: uuidv4(),
+            tableId: uuidv4(), // Generate UUID for the table
         });
 
-        await newTable.save();
-        res.status(201).json(new ApiResponse(201, newTable, 'Dining table created successfully.'));
+        await newTable.save(); // Save the dining table to the database
+        res.status(201).json({
+            status: 201,
+            data: newTable,
+            message: 'Dining table created successfully.',
+        });
     } catch (error) {
         console.error('Error creating dining table:', error.message);
         next(new ApiError(500, 'Error creating dining table', [error.message]));
     }
 };
+
 
 
 // Get all dining tables
