@@ -108,38 +108,38 @@ export const getDiningTableById = async (req, res, next) => {
 
 
 // Update a dining table
-// export const updateDiningTable = async (req, res, next) => {
-//     try {
-//         const { name, size, status } = req.body;
-//         const user = req.user;
+export const updateDiningTable = async (req, res, next) => {
+    try {
+        const { name, size, status } = req.body;
+        const user = req.user;
 
-//         // Check if user is authorized
-//         if (!user || user.role !== ROLES.RESTAURANT_OWNER) {
-//             throw new ApiError(403, 'You are not authorized to update dining tables.');
-//         }
+        // Check if user is authorized
+        if (!user || user.role !== ROLES.RESTAURANT_OWNER) {
+            throw new ApiError(403, 'You are not authorized to update dining tables.');
+        }
 
-//         const restaurantOwner = await MasterUser.findById(user._id).select('restaurants').lean();
-//         if (!restaurantOwner || !restaurantOwner.restaurants.length) {
-//             throw new ApiError(400, 'You must own a restaurant to update dining tables.');
-//         }
+        const restaurantOwner = await MasterUser.findById(user._id).select('restaurants').lean();
+        if (!restaurantOwner || !restaurantOwner.restaurants.length) {
+            throw new ApiError(400, 'You must own a restaurant to update dining tables.');
+        }
 
-//         const restaurantId = restaurantOwner.restaurants[0];
+        const restaurantId = restaurantOwner.restaurants[0];
 
-//         // Find the dining table by ID and ensure it belongs to the user's restaurant
-//         const updatedTable = await DiningTable.findOneAndUpdate(
-//             { tableId: req.params.id, restaurantId },
-//             { name, size, status },
-//             { new: true, runValidators: true }
-//         );
+        // Find the dining table by ID and ensure it belongs to the user's restaurant
+        const updatedTable = await DiningTable.findOneAndUpdate(
+            { tableId: req.params.id, restaurantId },
+            { name, size, status },
+            { new: true, runValidators: true }
+        );
 
-//         if (!updatedTable) return res.status(404).json(new ApiError(404, 'Dining table not found or you do not have permission to update it.'));
+        if (!updatedTable) return res.status(404).json(new ApiError(404, 'Dining table not found or you do not have permission to update it.'));
 
-//         res.status(200).json(new ApiResponse(200, updatedTable, 'Dining table updated successfully.'));
-//     } catch (error) {
-//         console.error('Error updating dining table:', error.message);
-//         next(new ApiError(500, 'Error updating dining table', [error.message]));
-//     }
-// };
+        res.status(200).json(new ApiResponse(200, updatedTable, 'Dining table updated successfully.'));
+    } catch (error) {
+        console.error('Error updating dining table:', error.message);
+        next(new ApiError(500, 'Error updating dining table', [error.message]));
+    }
+};
 
 // Delete a dining table
 export const deleteDiningTable = async (req, res, next) => {
