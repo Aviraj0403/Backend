@@ -32,15 +32,15 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ message: "cart must be a non-empty array" });
     }
 
-    // Convert foodId strings to ObjectId instances
-    const foodItemIds = cart.map(item => new mongoose.Types.ObjectId(item.foodId)); // Correct to foodId if that's the key in the cart
+    // Convert fooditemId strings to ObjectId instances (update the key to fooditemId)
+    const foodItemIds = cart.map(item => new mongoose.Types.ObjectId(item.fooditemId)); // Corrected to fooditemId
     console.log("foodItemIds:", foodItemIds);
 
     // Query the Food items for prices
     const foodItems = await Food.find({ _id: { $in: foodItemIds } }).select('price');
     console.log("Food Items from DB:", foodItems);
 
-    // Map food item prices
+    // Map food item prices to a map for quick lookup by foodId
     const foodPricesMap = foodItems.reduce((map, item) => {
       console.log("Found item:", item);
       map[item._id.toString()] = item.price;
@@ -48,12 +48,12 @@ export const createOrder = async (req, res) => {
     }, {});
     console.log("Food Prices Map:", foodPricesMap);
 
-    // Create order items
+    // Create order items by matching fooditemIds with prices
     const orderItems = cart.map(item => {
-      const price = foodPricesMap[item.foodId];  // Use foodId here consistently
+      const price = foodPricesMap[item.fooditemId.toString()];  // Ensure fooditemId is matched consistently
 
       if (typeof price !== 'number') {
-        console.error(`Price not found for foodId: ${item.foodId}`);
+        console.error(`Price not found for fooditemId: ${item.fooditemId}`);
         return null;  // Return null for missing prices
       }
 
@@ -61,24 +61,25 @@ export const createOrder = async (req, res) => {
       const totalPrice = price * quantity;
 
       return {
-        foodId: item.foodId,  // Use foodId consistently
+        foodId: item.fooditemId,  // Use fooditemId consistently
         quantity,
         price: totalPrice,
       };
     }).filter(item => item !== null);
 
+    // Ensure at least one valid item is in the order
     if (orderItems.length === 0) {
       return res.status(400).json({ message: "No valid food items found in cart" });
     }
 
-    // Calculate total price
+    // Calculate the total price of the order
     const totalPrice = orderItems.reduce((sum, item) => sum + item.price, 0);
 
-    // Adjust for priority and offer discount
+    // Apply priority surcharge (if any) and offer discount (if any)
     let finalTotalPrice = totalPrice;
 
     if (priority) {
-      finalTotalPrice += totalPrice * 0.2; // Add 20% for priority
+      finalTotalPrice += totalPrice * 0.2; // Add 20% surcharge for priority
     }
 
     if (selectedOffer) {
@@ -86,7 +87,7 @@ export const createOrder = async (req, res) => {
       finalTotalPrice -= (finalTotalPrice * discountPercentage) / 100; // Apply discount
     }
 
-    // Create the order in the database
+    // Create the order document to be saved in the database
     const newOrder = new Order({
       customer,
       phone,
@@ -107,12 +108,13 @@ export const createOrder = async (req, res) => {
     // Create Razorpay order
     const razorpayOrder = await createRazorpayOrder(finalTotalPrice, newOrder._id.toString());
 
+    // Check if Razorpay order creation was successful
     if (!razorpayOrder || !razorpayOrder.razorpayOrderId) {
       console.error("Razorpay order creation failed.");
       return res.status(500).json({ message: 'Failed to create Razorpay order' });
     }
 
-    // Save the Razorpay order ID in the order
+    // Save the Razorpay order ID in the order document
     newOrder.razorpayOrderId = razorpayOrder.razorpayOrderId;
     await newOrder.save();
 
@@ -129,6 +131,7 @@ export const createOrder = async (req, res) => {
     res.status(500).json({ message: 'Error creating order', error: error.message });
   }
 };
+
 
 
 // Verify Payment Controller
