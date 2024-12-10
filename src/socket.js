@@ -30,8 +30,8 @@ export const setupSocketIO = (io) => {
                     price: item.price || 0, // Ensure the price exists; use 0 as a fallback if not available
                 }));
                 const newOrder = new Order({
-                    customer: data.customerName, // Assuming you send customer details
-                    phone: data.customerPhone, // Assuming phone number is provided
+                    customer: data.orderDetails.customer, // Assuming you send customer details
+                    phone: data.orderDetails.phone, // Assuming phone number is provided
                     restaurantId: data.restaurantId,
                     diningTableId: selectedTable,
                     items: items,
