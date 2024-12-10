@@ -18,7 +18,7 @@ export const setupSocketIO = (io) => {
             }
 
             console.log(`New order received for Table ${data.tableId} at Restaurant ${data.restaurantId}`);
-            console.log("Order Details:", data.orderDetails);
+            console.log("Order Details through Socket socke:", data.orderDetails);
 
             // Create a new order and save it to the database
             try {
