@@ -41,7 +41,7 @@ export const setupSocketIO = (io) => {
                 });
                 console.log("new  Order", newOrder);
 
-                // await newOrder.save();
+                await newOrder.save();
 
                 // Emit the new order to all clients in the restaurant room
                 io.to(data.restaurantId).emit('newOrder', data);
