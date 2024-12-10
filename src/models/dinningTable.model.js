@@ -21,7 +21,7 @@ const diningTableSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ['Active', 'Inactive'], // Restrict status values
-      default: 'Inactive',
+      default: 'Active',
     },
     restaurantId: {
       type: mongoose.Schema.Types.ObjectId,
