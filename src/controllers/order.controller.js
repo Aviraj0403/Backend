@@ -32,26 +32,30 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ message: "cart must be a non-empty array" });
     }
 
-    // Convert fooditemId strings to ObjectId instances (update the key to fooditemId)
-    const foodItemIds = cart.map(item => new mongoose.Types.ObjectId(item.fooditemId)); // Corrected to fooditemId
-    console.log("foodItemIds:", foodItemIds);
+    // Validate customer and phone fields
+    if (!customer) {
+      return res.status(400).json({ message: "Customer name is required" });
+    }
+
+    if (!phone || !/^\+?[0-9]{10,15}$/.test(phone)) {
+      return res.status(400).json({ message: "Valid phone number is required" });
+    }
+
+    // Convert fooditemId strings to ObjectId instances
+    const foodItemIds = cart.map(item => new mongoose.Types.ObjectId(item.fooditemId));
 
     // Query the Food items for prices
     const foodItems = await Food.find({ _id: { $in: foodItemIds } }).select('price');
-    console.log("Food Items from DB:", foodItems);
-
+    
     // Map food item prices to a map for quick lookup by foodId
     const foodPricesMap = foodItems.reduce((map, item) => {
-      console.log("Found item:", item);
       map[item._id.toString()] = item.price;
       return map;
     }, {});
-    console.log("Food Prices Map:", foodPricesMap);
 
     // Create order items by matching fooditemIds with prices
     const orderItems = cart.map(item => {
-      const price = foodPricesMap[item.fooditemId.toString()];  // Ensure fooditemId is matched consistently
-
+      const price = foodPricesMap[item.fooditemId.toString()];
       if (typeof price !== 'number') {
         console.error(`Price not found for fooditemId: ${item.fooditemId}`);
         return null;  // Return null for missing prices
@@ -108,7 +112,6 @@ export const createOrder = async (req, res) => {
     // Create Razorpay order
     const razorpayOrder = await createRazorpayOrder(finalTotalPrice, newOrder._id.toString());
 
-    // Check if Razorpay order creation was successful
     if (!razorpayOrder || !razorpayOrder.razorpayOrderId) {
       console.error("Razorpay order creation failed.");
       return res.status(500).json({ message: 'Failed to create Razorpay order' });
@@ -131,6 +134,7 @@ export const createOrder = async (req, res) => {
     res.status(500).json({ message: 'Error creating order', error: error.message });
   }
 };
+
 
 
 
