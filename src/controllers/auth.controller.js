@@ -248,12 +248,20 @@ export const registerRestaurantOwner = asyncHandler(async (req, res) => {
 // Logout function
 export const logoutUser = asyncHandler(async (req, res) => {
     try {
+        // CSRF Token Validation - You can include this if CSRF validation is needed for logout
+        const csrfToken = req.body.csrfToken || req.headers['csrf-token'];
+        if (!csrfToken) {
+            return res.status(400).json({ message: 'CSRF token is missing' });
+        }
+
+        // Here, you can validate the CSRF token if needed
+
         // Clear cookies related to authentication and CSRF
         res.clearCookie("accessToken", { 
             httpOnly: true, 
             secure: process.env.NODE_ENV === "production", // Ensure secure cookies in production
             sameSite: 'None', 
-            path: '/' // Specify path if needed
+            path: '/' 
         });
         res.clearCookie("refreshToken", { 
             httpOnly: true, 
