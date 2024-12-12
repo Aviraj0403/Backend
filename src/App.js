@@ -29,6 +29,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
+app.set('trust proxy', true);
 
 // Read allowed origins from the .env file
 const allowedOrigins = process.env.CORS_ORIGINS.split(',').map(o => o.trim());
@@ -61,6 +62,7 @@ const io = new Server(server, {
     credentials: true,
   },
 });
+
 
 // Middleware
 app.use(bodyParser.json());
