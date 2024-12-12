@@ -113,7 +113,7 @@ const setTokensAndCookies = async (res, user,restaurantId) => {
         .cookie("csrfToken", csrfToken, {
             httpOnly: false,
             secure: process.env.NODE_ENV === "production",
-            sameSite: 'Strict',
+            sameSite: 'None',
             path: '/'
         })
         .status(200)
