@@ -252,19 +252,19 @@ export const logoutUser = asyncHandler(async (req, res) => {
         res.clearCookie("accessToken", { 
             httpOnly: true, 
             secure: process.env.NODE_ENV === "production", // Ensure secure cookies in production
-            sameSite: 'Strict', 
+            sameSite: 'None', 
             path: '/' // Specify path if needed
         });
         res.clearCookie("refreshToken", { 
             httpOnly: true, 
             secure: process.env.NODE_ENV === "production", 
-            sameSite: 'Strict', 
+            sameSite: 'None', 
             path: '/' 
         });
         res.clearCookie("csrfToken", { 
             httpOnly: false, // CSRF token doesn't need httpOnly
             secure: process.env.NODE_ENV === "production", 
-            sameSite: 'Strict', 
+            sameSite: 'None', 
             path: '/' 
         });
 
