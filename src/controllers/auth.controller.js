@@ -247,9 +247,32 @@ export const registerRestaurantOwner = asyncHandler(async (req, res) => {
 
 // Logout function
 export const logoutUser = asyncHandler(async (req, res) => {
-    res.clearCookie("accessToken", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: 'Strict' });
-    res.clearCookie("refreshToken", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: 'Strict' });
-    res.clearCookie("csrfToken", { httpOnly: false, secure: process.env.NODE_ENV === "production", sameSite: 'Strict' });
+    try {
+        // Clear cookies related to authentication and CSRF
+        res.clearCookie("accessToken", { 
+            httpOnly: true, 
+            secure: process.env.NODE_ENV === "production", // Ensure secure cookies in production
+            sameSite: 'Strict', 
+            path: '/' // Specify path if needed
+        });
+        res.clearCookie("refreshToken", { 
+            httpOnly: true, 
+            secure: process.env.NODE_ENV === "production", 
+            sameSite: 'Strict', 
+            path: '/' 
+        });
+        res.clearCookie("csrfToken", { 
+            httpOnly: false, // CSRF token doesn't need httpOnly
+            secure: process.env.NODE_ENV === "production", 
+            sameSite: 'Strict', 
+            path: '/' 
+        });
 
-    return res.status(200).json({ message: "Logged out successfully" });
+        // Send success response
+        return res.status(200).json({ message: "Logged out successfully" });
+    } catch (error) {
+        console.error('Error during logout:', error);
+        return res.status(500).json({ message: "An error occurred during logout." });
+    }
 });
+
