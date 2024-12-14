@@ -99,7 +99,8 @@ const setTokensAndCookies = async (res, user,restaurantId) => {
     res
         .cookie("accessToken", accessToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production", // Use secure in production
+            secure:true,
+            // secure: process.env.NODE_ENV === "production", // Use secure in production
             maxAge: 3600000, // 1 ho
             sameSite: 'None',
             // domain: '.onrender.com',
