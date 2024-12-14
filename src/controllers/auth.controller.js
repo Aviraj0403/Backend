@@ -102,18 +102,21 @@ const setTokensAndCookies = async (res, user,restaurantId) => {
             secure: process.env.NODE_ENV === "production", // Use secure in production
             maxAge: 3600000, // 1 ho
             sameSite: 'None',
+            domain: '.onrender.com',
             path: '/'
         })
         .cookie("refreshToken", refreshToken, { // Use refreshToken instead of refreshAccessToken
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: 'None',
+            domain: '.onrender.com',
             path: '/'
         })
         .cookie("csrfToken", csrfToken, {
             httpOnly: false,
             secure: process.env.NODE_ENV === "production",
             sameSite: 'None',
+            domain: '.onrender.com',
             path: '/'
         })
         .status(200)
