@@ -250,6 +250,7 @@ export const logoutUser = asyncHandler(async (req, res) => {
     try {
         // CSRF Token Validation - You can include this if CSRF validation is needed for logout
         const csrfToken = req.body.csrfToken || req.headers['csrf-token'];
+        console.log("c",csrfToken);
         if (!csrfToken) {
             return res.status(400).json({ message: 'CSRF token is missing' });
         }
