@@ -7,6 +7,10 @@ import {
     checkSuperAdmin,
     logoutUser,
     refreshToken,
+    requestOtp,
+    verifyOtpAndChangePassword,
+    // requestPasswordReset,
+    // resetPassword
     // refreshAccessToken
 } from '../controllers/auth.controller.js';
 import { verifyJWT, isSuperAdmin, csrfProtectionMiddleware } from '../middleware/auth.middleware.js';
@@ -38,6 +42,14 @@ router.get('/superadmin/dashboard', verifyJWT, isSuperAdmin, (req, res) => {
     res.status(200).json({ message: 'Welcome to the Super Admin Dashboard' });
 });
 router.post('/logout', csrfProtectionMiddleware, logoutUser);
-// More routes can be added here...
 
+// router.post('/request-password-reset', requestPasswordReset);
+
+// // Route for resetting password
+// router.post('/reset-password', resetPassword);
+// More routes can be added here...
+//SMS_OTP 
+
+router.post('/request-otp', requestOtp);
+router.post('/verify-otp-and-reset-password', verifyOtpAndChangePassword);
 export default router;

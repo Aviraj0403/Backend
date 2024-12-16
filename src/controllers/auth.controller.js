@@ -3,8 +3,59 @@ import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { Restaurant } from '../models/restaurant.model.js';
 import crypto from 'crypto';
+import nodemailer from 'nodemailer';
+import { google } from 'googleapis';
+import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { sendOtpToPhone } from '../services/otpService.js';
 
+
+// OAuth2 client initialization with credentials from environment variables
+
+
+// const CLIENT_ID = process.env.GMAIL_CLIENT_ID;
+// const CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET;
+// const REDIRECT_URI = 'https://developers.google.com/oauthplayground'; // Ensure this matches your redirect URI
+// const REFRESH_TOKEN = process.env.GMAIL_REFRESH_TOKEN;
+// console.log("CLIENT_ID",CLIENT_ID);
+// console.log("CLIENT_SECRET",CLIENT_SECRET);
+// console.log("REFRESH_TOKEN",REFRESH_TOKEN);
+// const oAuth2Client = new google.auth.OAuth2(
+//   CLIENT_ID,
+//   CLIENT_SECRET,
+//   REDIRECT_URI
+// );
+
+// // Set credentials with refresh token
+// oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+
+// // Create a transporter using the OAuth2 client
+// async function createTransporter() {
+//   try {
+//     // Get a fresh access token (it will be automatically refreshed if expired)
+//     const { token } = await oAuth2Client.getAccessToken();
+    
+//     // Create and return the nodemailer transporter
+//     const transporter = nodemailer.createTransport({
+//       service: 'gmail',
+//       auth: {
+//         type: 'OAuth2',
+//         user: process.env.EMAIL_USER,  // Your Gmail address (e.g., aviraj0403@gmail.com)
+//         clientId: CLIENT_ID,
+//         clientSecret: CLIENT_SECRET,
+//         refreshToken: REFRESH_TOKEN,
+//         accessToken: token,  // Current access token
+//       },
+//     });
+
+//     return transporter;
+//   } catch (error) {
+//     console.error('Error creating transporter:', error);
+//     throw error;
+//   }
+// }
+
+  
 const backendUrl = process.env.NODE_ENV === "production" ? process.env.BACKEND_URL_PROD : process.env.BACKEND_URL;
 console.log("Backend URL is:", backendUrl);
 
@@ -288,4 +339,208 @@ export const logoutUser = asyncHandler(async (req, res) => {
         return res.status(500).json({ message: "An error occurred during logout." });
     }
 });
+
+// const transporter = nodemailer.createTransport({
+//     service: 'gmail',
+//     auth: {
+//         type: 'OAuth2',
+//         user: process.env.EMAIL_USER,            // Your Gmail email address
+//         clientId: process.env.GMAIL_CLIENT_ID,   // Your Client ID
+//         clientSecret: process.env.GMAIL_CLIENT_SECRET, // Your Client Secret
+//         refreshToken: process.env.GMAIL_REFRESH_TOKEN,  // Your refresh token
+//         accessToken: await getAccessToken(),          // Access token (automatically generated)
+//     },
+// });
+
+
+// Request Password Reset
+// export const requestPasswordReset = asyncHandler(async (req, res) => {
+//     const { email } = req.body;
+  
+//     try {
+//       console.log('Received email:', email);  // Log the email
+//       const user = await RestaurantOwner.findOne({ email });
+//       if (!user) {
+//         console.log('User not found');
+//         return res.status(404).json({ message: 'User not found' });
+//       }
+  
+//       console.log('User found, generating token');
+//       const resetToken = user.generatePasswordResetToken();
+//       await user.save();
+  
+//       const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+  
+//       // Create transporter and send the password reset email
+//       const transporter = await createTransporter();
+//       await transporter.sendMail({
+//         from: process.env.EMAIL_USER,
+//         to: email,
+//         subject: 'Password Reset Request',
+//         text: `Here is your password reset link: ${resetUrl}`,
+//       });
+  
+//       console.log('Password reset link sent');
+//       res.status(200).json({ message: 'Password reset link sent to your email.' });
+//     } catch (error) {
+//       console.error('Error requesting password reset:', error);
+//       res.status(500).json({ message: 'Error processing your request.' });
+//     }
+//   });
+  
+// // Reset Password Handler
+// export const resetPassword = asyncHandler(async (req, res) => {
+//   const { token, newPassword } = req.body;
+
+//   try {
+//     // Find user by reset token
+//     const user = await RestaurantOwner.findOne({ passwordResetToken: token });
+//     if (!user || !user.isValidResetToken(token)) {
+//       return res.status(400).json({ message: 'Invalid or expired token' });
+//     }
+
+//     // Hash the new password before saving
+//     const hashedPassword = await bcrypt.hash(newPassword, 10);
+//     user.password = hashedPassword;
+
+//     // Clear reset token and expiration
+//     await user.clearPasswordResetData();
+//     await user.save();
+
+//     res.status(200).json({ message: 'Password successfully reset.' });
+//   } catch (error) {
+//     console.error('Error resetting password:', error);
+//     res.status(500).json({ message: 'Error resetting your password.' });
+//   }
+// });
+
+
+
+// SMS OTP SETUP
+
+
+export const requestOtp = async (req, res) => {
+    console.log("Request Body:", req.body);  // Log the entire request body for debugging
+    
+    const { contactInfo } = req.body;
+
+    // Ensure that contactInfo and contactInfo.phone are provided
+    if (!contactInfo || !contactInfo.phone) {
+        return res.status(400).json({ message: 'Phone number is required' });
+    }
+
+    try {   
+        let phoneNumber = contactInfo.phone.trim();  // Get phone number from the request
+
+        // If the phone number starts with '+91', remove the country code
+        if (phoneNumber.startsWith('+91')) {
+            phoneNumber = phoneNumber.slice(3);  // Remove '+91'
+        }
+
+        console.log("Formatted Phone Number received:", phoneNumber);  // Log the formatted phone number
+       // Step 1: Find the restaurant by phone number
+        const restaurant = await Restaurant.findOne({ 'contactInfo.phone': phoneNumber });
+         console.log("Res",restaurant)
+        if (!restaurant) {
+            return res.status(404).json({ message: 'Restaurant with this phone number not found' });
+        }
+
+         // Step 2: Get the RestaurantOwner using the ownerId from the restaurant
+         const restaurantOwner = await RestaurantOwner.findById(restaurant.ownerId);
+         console.log("Res Own",restaurantOwner);
+         if (!restaurantOwner) {
+             return res.status(404).json({ message: 'Restaurant owner not found' });
+         }
+
+
+        // Find the user by phone number in 'contactInfo.phone'
+        // const user = await RestaurantOwner.findOne({ 'contactInfo.phone': phoneNumber });
+        // console.log(user);  // Log the user object for debugging
+
+        // if (!user) {
+        //     return res.status(404).json({ message: 'User with this phone number not found' });
+        // }
+       console.log(phoneNumber)
+        // Send OTP to the phone number using the sendOtpToPhone function
+        const otpRecord = await sendOtpToPhone(phoneNumber);
+        console.log(otpRecord);  // Log OTP details for debugging
+
+        // Save OTP and its expiration time to the user's record
+        restaurantOwner.passwordResetOtp = otpRecord.otp;
+        restaurantOwner.passwordResetOtpExpiresAt = otpRecord.otpExpiresAt;
+        await restaurantOwner.save();
+       
+        // Respond back with success
+        res.status(200).json({ message: 'OTP sent successfully' });
+    } catch (error) {
+        console.error('Error in OTP request:', error);  // Log the error for debugging
+        return res.status(500).json({ message: 'An error occurred while sending OTP' });
+    }
+};
+
+
+export const verifyOtpAndChangePassword = async (req, res) => {
+    const { contactInfo, otp, newPassword } = req.body;
+
+    console.log(req.body);  // Log the body to check the input
+
+    if (!contactInfo || !otp || !newPassword) {
+        return res.status(400).json({ message: 'Phone number, OTP, and new password are required' });
+    }
+
+    try {
+        let phoneNumber = contactInfo.phone.trim();  // Get phone number from the request
+
+        // If the phone number starts with '+91', remove the country code
+        if (phoneNumber.startsWith('+91')) {
+            phoneNumber = phoneNumber.slice(3);  // Remove '+91'
+        }
+
+        console.log("Formatted Phone Number received:", phoneNumber);  // Log the formatted phone number
+
+        // Step 1: Find the restaurant by phone number
+        const restaurant = await Restaurant.findOne({ 'contactInfo.phone': phoneNumber });
+        if (!restaurant) {
+            return res.status(404).json({ message: 'Restaurant with this phone number not found' });
+        }
+
+        // Step 2: Get the RestaurantOwner using the ownerId from the restaurant
+        const restaurantOwner = await RestaurantOwner.findById(restaurant.ownerId);
+        if (!restaurantOwner) {
+            return res.status(404).json({ message: 'Restaurant owner not found' });
+        }
+
+        // Step 3: Check if the provided OTP matches the stored OTP
+        if (restaurantOwner.passwordResetOtp !== otp) {
+            return res.status(400).json({ message: 'Invalid OTP' });
+        }
+
+        // Step 4: Check if the OTP has expired
+        if (restaurantOwner.passwordResetOtpExpiresAt < Date.now()) {
+            return res.status(400).json({ message: 'OTP has expired' });
+        }
+
+        console.log("New Password received:", newPassword);
+
+        // Step 5: Hash the new password before saving it
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        console.log("Hashed new password:", hashedPassword);
+
+        // Step 6: Update the password and clear the OTP data
+        restaurantOwner.password = newPassword;  // Update the password field
+        restaurantOwner.passwordResetOtp = undefined; // Clear OTP after successful reset
+        restaurantOwner.passwordResetOtpExpiresAt = undefined; // Clear expiration time
+
+        await restaurantOwner.save();
+
+        // Respond back with success
+        res.status(200).json({ message: 'Password reset successful' });
+    } catch (error) {
+        console.error('Error in OTP verification and password change:', error);
+        return res.status(500).json({ message: 'An error occurred during OTP verification and password reset' });
+    }
+};
+
+
+
 

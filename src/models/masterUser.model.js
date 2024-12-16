@@ -1,7 +1,8 @@
 import mongoose, { Schema } from 'mongoose';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken'; // Ensure jwt is imported
-
+import crypto from 'crypto'; // Import crypto for token generation
+import { Restaurant } from './restaurant.model.js';
 export const ROLES = {
     SUPER_ADMIN: 'superAdmin',
     RESTAURANT_OWNER: 'restaurantOwner',
@@ -38,12 +39,11 @@ const subscriptionSchema = new Schema({
         default: Date.now
     },
 }, { timestamps: true });
- 
+
 subscriptionSchema.methods.updateDetails = function (updates) {
     Object.assign(this, updates);
     return this; // Return the updated subscription
 };
-
 
 const masterUserSchema = new Schema({
     username: {
@@ -72,9 +72,28 @@ const masterUserSchema = new Schema({
     profilePicture: {
         type: String, // Optional profile picture URL
     },
+    //  SMS_OTP STORE tEMP
+    passwordResetOtp: {
+        type: String,
+        default: null,  // To store OTP
+    },
+    passwordResetOtpExpiresAt: {
+        type: Date,
+        default: null,  // To store expiration time of OTP
+    },
+    //MAIL_LINK GENERATION
+    passwordResetToken: {
+        type: String, // Token to reset password
+        default: null,
+    },
+    passwordResetExpires: {
+        type: Date, // Expiration time for the token
+        default: null,
+    }
 },
-    { timestamps: true });
+{ timestamps: true });
 
+// Hash password before saving
 masterUserSchema.pre('save', async function (next) {
     if (this.isModified('password')) {
         this.password = await bcrypt.hash(this.password, 10);
@@ -82,11 +101,12 @@ masterUserSchema.pre('save', async function (next) {
     next();
 });
 
+// Compare password
 masterUserSchema.methods.isPasswordCorrect = async function (password) {
     return bcrypt.compare(password, this.password);
 };
 
-// Method to generate access token
+// Generate access token
 masterUserSchema.methods.generateAccessToken = function () {
     try {
         const token = jwt.sign({
@@ -104,6 +124,7 @@ masterUserSchema.methods.generateAccessToken = function () {
     }
 };
 
+// Generate refresh token
 masterUserSchema.methods.generateRefreshToken = function () {
     try {
         const token = jwt.sign({
@@ -121,12 +142,29 @@ masterUserSchema.methods.generateRefreshToken = function () {
     }
 };
 
+// Generate password reset token and set expiration
+masterUserSchema.methods.generatePasswordResetToken = function () {
+    console.log('Generating reset token...');
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    this.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    this.passwordResetExpires = Date.now() + 3600000; // 1 hour expiration
+    return resetToken; // Return the plain token for sending in the email
+};
 
+// Validate password reset token
+masterUserSchema.methods.isValidResetToken = function (token) {
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    return this.passwordResetToken === hashedToken && this.passwordResetExpires > Date.now();
+};
 
-// Creating User Models
+// Clear password reset token and expiration
+masterUserSchema.methods.clearPasswordResetData = function () {
+    this.passwordResetToken = undefined;
+    this.passwordResetExpires = undefined;
+};
+
 const MasterUser = mongoose.model('MasterUser', masterUserSchema);
 
-// Discriminator for Restaurant Owners
 const RestaurantOwnerSchema = new Schema({
     restaurants: [
         {
@@ -136,11 +174,45 @@ const RestaurantOwnerSchema = new Schema({
     ],
     subscriptionRecords: [subscriptionSchema]
 },
-    { timestamps: true });
+{ timestamps: true });
+// Instance method to add a restaurant to the restaurant owner's list
+RestaurantOwnerSchema.methods.addRestaurant = async function (restaurantId) {
+    // Check if the restaurant is already added
+    if (this.restaurants.includes(restaurantId)) {
+        throw new Error('This restaurant is already added to the owner');
+    }
 
-// Inherit from MasterUser
+    // Add the restaurant to the restaurants array
+    this.restaurants.push(restaurantId);
+
+    // Save the restaurant owner
+    await this.save();
+};
+
+// Static method to create a restaurant and associate it with the owner
+RestaurantOwnerSchema.statics.createRestaurant = async function (restaurantData, restaurantOwnerId) {
+    // Create the restaurant
+    const restaurant = new Restaurant({
+        ...restaurantData,
+        ownerId: restaurantOwnerId, // Associate restaurant with restaurantOwner
+    });
+
+    // Save the restaurant to the database
+    const savedRestaurant = await restaurant.save();
+
+    // Find the restaurant owner and associate the restaurant
+    const restaurantOwner = await this.findById(restaurantOwnerId);
+    if (!restaurantOwner) {
+        throw new Error('RestaurantOwner not found');
+    }
+
+    // Add restaurant to the owner's list
+    await restaurantOwner.addRestaurant(savedRestaurant._id);
+
+    return savedRestaurant;
+};
+
+
 const RestaurantOwner = MasterUser.discriminator('RestaurantOwner', RestaurantOwnerSchema);
-
-// Optional: You can create a separate model for Super Admin if needed
 
 export { MasterUser, RestaurantOwner, subscriptionSchema };

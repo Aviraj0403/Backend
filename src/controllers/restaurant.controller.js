@@ -264,4 +264,33 @@ export const updateSubscriptionDetails = asyncHandler(async (req, res) => {
     });
 });
 
+export async function addRestaurantToOwner(restaurantOwnerId, restaurantId) {
+    try {
+        // Find the RestaurantOwner by ID
+        const restaurantOwner = await RestaurantOwner.findById(restaurantOwnerId);
+        if (!restaurantOwner) {
+            throw new Error('Restaurant Owner not found');
+        }
 
+        // Add restaurant to the owner
+        await restaurantOwner.addRestaurant(restaurantId);
+        console.log('Restaurant added successfully to the owner!');
+        return { message: 'Restaurant added successfully' };
+    } catch (error) {
+        console.error('Error adding restaurant:', error);
+        throw new Error('Error adding restaurant to owner');
+    }
+}
+
+// Function to create a new restaurant and associate it with the RestaurantOwner
+export async function createRestaurantAndAssociate(restaurantData, restaurantOwnerId) {
+    try {
+        // Create the restaurant and associate it with the RestaurantOwner
+        const newRestaurant = await RestaurantOwner.createRestaurant(restaurantData, restaurantOwnerId);
+        console.log('Restaurant created and associated with the owner:', newRestaurant);
+        return { message: 'Restaurant created and associated successfully', restaurant: newRestaurant };
+    } catch (error) {
+        console.error('Error creating and associating restaurant:', error);
+        throw new Error('Error creating restaurant');
+    }
+}
