@@ -420,7 +420,7 @@ export const logoutUser = asyncHandler(async (req, res) => {
 
 
 export const requestOtp = async (req, res) => {
-    console.log("Request Body:", req.body);  // Log the entire request body for debugging
+    // console.log("Request Body:", req.body);  // Log the entire request body for debugging
     
     const { contactInfo } = req.body;
 
@@ -437,17 +437,17 @@ export const requestOtp = async (req, res) => {
             phoneNumber = phoneNumber.slice(3);  // Remove '+91'
         }
 
-        console.log("Formatted Phone Number received:", phoneNumber);  // Log the formatted phone number
+        // console.log("Formatted Phone Number received:", phoneNumber);  // Log the formatted phone number
        // Step 1: Find the restaurant by phone number
         const restaurant = await Restaurant.findOne({ 'contactInfo.phone': phoneNumber });
-         console.log("Res",restaurant)
+        //  console.log("Res",restaurant)
         if (!restaurant) {
             return res.status(404).json({ message: 'Restaurant with this phone number not found' });
         }
 
          // Step 2: Get the RestaurantOwner using the ownerId from the restaurant
          const restaurantOwner = await RestaurantOwner.findById(restaurant.ownerId);
-         console.log("Res Own",restaurantOwner);
+        //  console.log("Res Own",restaurantOwner);
          if (!restaurantOwner) {
              return res.status(404).json({ message: 'Restaurant owner not found' });
          }
@@ -460,10 +460,10 @@ export const requestOtp = async (req, res) => {
         // if (!user) {
         //     return res.status(404).json({ message: 'User with this phone number not found' });
         // }
-       console.log(phoneNumber)
+    //    console.log(phoneNumber)
         // Send OTP to the phone number using the sendOtpToPhone function
         const otpRecord = await sendOtpToPhone(phoneNumber);
-        console.log(otpRecord);  // Log OTP details for debugging
+        // console.log(otpRecord);  // Log OTP details for debugging
 
         // Save OTP and its expiration time to the user's record
         restaurantOwner.passwordResetOtp = otpRecord.otp;

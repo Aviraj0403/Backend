@@ -10,7 +10,7 @@ export const sendOtpToPhone = async (phoneNumber) => {
 
     // Format the phone number into the correct international format
     const formattedPhoneNumber = formatPhoneNumber(phoneNumber);
-    console.log("Formatted Phone Number: ", formattedPhoneNumber);
+    // console.log("Formatted Phone Number: ", formattedPhoneNumber);
 
     if (!formattedPhoneNumber) {
         throw new Error('Invalid phone number format');
@@ -31,7 +31,7 @@ export const sendOtpToPhone = async (phoneNumber) => {
         });
 
         // Log OTP details for debugging (remove in production)
-        console.log("OTP Sent:", otpRecord);
+        // console.log("OTP Sent:", otpRecord);
 
         return otpRecord; // Return the OTP details (for validation later)
     } catch (error) {
@@ -47,7 +47,7 @@ const generateOtp = () => {
 
 // Function to format phone number to international format (e.g., +91XXXXXXXXXX)
 const formatPhoneNumber = (phoneNumber) => {
-    console.log("Raw Phone Number:", phoneNumber);
+    // console.log("Raw Phone Number:", phoneNumber);
 
     // Check if phoneNumber is defined and is a string
     if (typeof phoneNumber !== 'string' || phoneNumber.trim() === '') {
