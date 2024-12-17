@@ -4,30 +4,34 @@ const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TO
 
 // Function to generate OTP and send it via SMS
 export const sendOtpToPhone = async (phoneNumber) => {
-    const otp = generateOtp(); // Generate OTP
-    const otpExpiresAt = Date.now() + 300000; // OTP validity (e.g., 5 minutes)
+    // Generate OTP
+    const otp = generateOtp();
+    const otpExpiresAt = Date.now() + 300000; // OTP validity of 5 minutes (300000 ms)
 
-    // Ensure the phone number is in the correct international format
+    // Format the phone number into the correct international format
     const formattedPhoneNumber = formatPhoneNumber(phoneNumber);
     console.log("Formatted Phone Number: ", formattedPhoneNumber);
-    
+
     if (!formattedPhoneNumber) {
         throw new Error('Invalid phone number format');
     }
-    
-    // Store OTP and expiration time (in a database or in-memory store)
+
+    // Store OTP and expiration time in your database (or memory store)
     const otpRecord = {
         otp,
         otpExpiresAt
     };
 
-    // Send OTP via SMS using Twilio API
     try {
+        // Send OTP via SMS using Twilio API
         await client.messages.create({
             body: `Your OTP for password reset is: ${otp}`,
             from: process.env.TWILIO_PHONE_NUMBER, // Ensure this number is set in your env vars
             to: formattedPhoneNumber // Ensure the phone number is formatted correctly
         });
+
+        // Log OTP details for debugging (remove in production)
+        console.log("OTP Sent:", otpRecord);
 
         return otpRecord; // Return the OTP details (for validation later)
     } catch (error) {
@@ -42,11 +46,9 @@ const generateOtp = () => {
 };
 
 // Function to format phone number to international format (e.g., +91XXXXXXXXXX)
-// Function to format phone number to international format (e.g., +91XXXXXXXXXX)
-
-// Function to format phone number to international format (e.g., +91XXXXXXXXXX)
 const formatPhoneNumber = (phoneNumber) => {
-    console.log(phoneNumber)
+    console.log("Raw Phone Number:", phoneNumber);
+
     // Check if phoneNumber is defined and is a string
     if (typeof phoneNumber !== 'string' || phoneNumber.trim() === '') {
         return null; // Invalid phone number format
@@ -62,9 +64,13 @@ const formatPhoneNumber = (phoneNumber) => {
 
     // If the number is exactly 10 digits, assume it's an Indian phone number and add '+91'
     if (/^\d{10}$/.test(cleanedPhoneNumber)) {
-        return `+91${cleanedPhoneNumber}`;
+        return `+91${cleanedPhoneNumber}`; // Add +91 for Indian numbers
     }
 
-    return null;  // Invalid phone number format if it doesn't match
-};
+    // If the phone number has a valid country code but not +91, we can format it as a general international number
+    if (/^\d{11,15}$/.test(cleanedPhoneNumber)) {
+        return `+${cleanedPhoneNumber}`; // Prepend '+' for international numbers
+    }
 
+    return null;  // Return null if it doesn't match any valid format
+};
